@@ -1,0 +1,356 @@
+{% load static %}
+
+<!-- Enhanced Deepfake Detection Results Template -->
+<!-- This template displays comprehensive analysis results similar to the example provided -->
+
+<div class="enhanced-results-container">
+    <!-- Main Detection Result Header -->
+    <div class="detection-header">
+        <div class="prediction-display">
+            {% if result.prediction == 'REAL' %}
+                <h2 class="real-video">Real Video Detected</h2>
+                <div class="filename">{{ result.video_file_name|default:"Video" }}</div>
+            {% else %}
+                <h2 class="fake-video">Deepfake Video Detected</h2>
+                <div class="filename">{{ result.video_file_name|default:"Video" }}</div>
+            {% endif %}
+        </div>
+        
+        <div class="confidence-display">
+            <div class="confidence-circle">
+                <div class="confidence-value">{{ result.confidence_score|floatformat:2 }}%</div>
+                <div class="confidence-label">Confidence</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detection Results Section -->
+    <div class="results-section">
+        <h3>🔍 Detection Results</h3>
+        <div class="results-grid">
+            <div class="result-item">
+                <span class="label">Prediction:</span>
+                <span class="value">{% if result.prediction == 'REAL' %}Real Video{% else %}Deepfake Video{% endif %}</span>
+            </div>
+            <div class="result-item">
+                <span class="label">Overall Confidence:</span>
+                <span class="value">{{ result.confidence_score|floatformat:2 }}%</span>
+            </div>
+            <div class="result-item">
+                <span class="label">Confidence Level:</span>
+                <span class="value">{{ enhanced_data.confidence_level|default:"Medium" }}</span>
+            </div>
+            <div class="result-item">
+                <span class="label">Authentic Probability:</span>
+                <span class="value">{{ result.real_probability|floatformat:1 }}%</span>
+            </div>
+            <div class="result-item">
+                <span class="label">Deepfake Probability:</span>
+                <span class="value">{{ result.fake_probability|floatformat:1 }}%</span>
+            </div>
+        </div>
+        
+        <div class="confidence-indicator">
+            {% if result.prediction == 'REAL' %}
+                High confidence indicates authentic video content
+            {% else %}
+                High confidence indicates synthetic/manipulated content
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Video Analysis Details -->
+    <div class="analysis-section">
+        <h3>📊 Video Analysis Details</h3>
+        <div class="analysis-grid">
+            <div class="analysis-item">
+                <span class="label">File Size:</span>
+                <span class="value">{{ enhanced_data.video_analysis.file_size|default:"Unknown" }}</span>
+            </div>
+            <div class="analysis-item">
+                <span class="label">Duration:</span>
+                <span class="value">{{ enhanced_data.video_analysis.duration|default:result.video_duration }} seconds</span>
+            </div>
+            <div class="analysis-item">
+                <span class="label">Frame Rate:</span>
+                <span class="value">{{ enhanced_data.video_analysis.frame_rate|default:result.video_fps }} FPS</span>
+            </div>
+            <div class="analysis-item">
+                <span class="label">Resolution:</span>
+                <span class="value">{{ enhanced_data.video_analysis.resolution|default:result.video_resolution }}</span>
+            </div>
+            <div class="analysis-item">
+                <span class="label">Faces Detected:</span>
+                <span class="value">{{ enhanced_data.video_analysis.faces_detected|default:result.face_count }} faces</span>
+            </div>
+            <div class="analysis-item">
+                <span class="label">Frames Analyzed:</span>
+                <span class="value">{{ result.frames_analyzed }} frames</span>
+            </div>
+            <div class="analysis-item">
+                <span class="label">Processing Time:</span>
+                <span class="value">{{ enhanced_data.video_analysis.processing_time|default:result.processing_time }} seconds</span>
+            </div>
+            <div class="analysis-item">
+                <span class="label">Analysis Date:</span>
+                <span class="value">{{ enhanced_data.video_analysis.analysis_date|default:result.created_at|date:"M d, Y H:i" }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detection Insights -->
+    <div class="insights-section">
+        <h3>💡 Detection Insights</h3>
+        <div class="insight-content">
+            {% if enhanced_data.insights.summary %}
+                <p class="insight-summary">{{ enhanced_data.insights.summary }}</p>
+            {% else %}
+                {% if result.prediction == 'REAL' %}
+                    <p class="insight-summary">Authentic Video: The AI model indicates this video appears to be genuine. Some uncertainty remains - manual review recommended.</p>
+                {% else %}
+                    <p class="insight-summary">Deepfake Content: The AI model has detected evidence of synthetic or manipulated content in this video.</p>
+                {% endif %}
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- AI Model Information -->
+    <div class="model-section">
+        <h3>🤖 AI Model Information</h3>
+        <div class="model-grid">
+            <div class="model-item">
+                <span class="label">Model:</span>
+                <span class="value">{{ enhanced_data.model_info.model_name|default:result.model_used }}</span>
+            </div>
+            <div class="model-item">
+                <span class="label">Version:</span>
+                <span class="value">{{ enhanced_data.model_info.version|default:result.model_version }}</span>
+            </div>
+            <div class="model-item">
+                <span class="label">Method:</span>
+                <span class="value">{{ enhanced_data.model_info.method|default:result.detection_method }}</span>
+            </div>
+            <div class="model-item">
+                <span class="label">Architecture:</span>
+                <span class="value">{{ enhanced_data.model_info.architecture|default:"XceptionNet" }}</span>
+            </div>
+            <div class="model-item">
+                <span class="label">Training Data:</span>
+                <span class="value">{{ enhanced_data.model_info.training_data|default:"FaceForensics++ Dataset" }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Frame-by-Frame Analysis -->
+    {% if enhanced_data.frame_analysis %}
+    <div class="frame-analysis-section">
+        <h3>📋 Frame-by-Frame Analysis</h3>
+        <div class="frame-analysis-header">
+            <h4>Detailed Frame Analysis</h4>
+        </div>
+        
+        <div class="frame-table-container">
+            <table class="frame-analysis-table">
+                <thead>
+                    <tr>
+                        <th>Frame #</th>
+                        <th>Timestamp</th>
+                        <th>Prediction</th>
+                        <th>Confidence</th>
+                        <th>Real %</th>
+                        <th>Fake %</th>
+                        <th>Face Detected</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for frame in enhanced_data.frame_analysis %}
+                    <tr class="{% if frame.prediction == 'Fake' %}fake-frame{% else %}real-frame{% endif %}">
+                        <td>{{ frame.frame_number }}</td>
+                        <td>{{ frame.timestamp }}</td>
+                        <td class="prediction-cell">{{ frame.prediction }}</td>
+                        <td>{{ frame.confidence|floatformat:3 }}</td>
+                        <td>{{ frame.real_percent }}</td>
+                        <td>{{ frame.fake_percent }}</td>
+                        <td class="face-detected">{{ frame.face_detected }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.enhanced-results-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.detection-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding: 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 15px;
+    color: white;
+}
+
+.real-video {
+    color: #4CAF50;
+    margin: 0;
+}
+
+.fake-video {
+    color: #F44336;
+    margin: 0;
+}
+
+.filename {
+    font-size: 18px;
+    font-weight: 500;
+    margin-top: 8px;
+}
+
+.confidence-circle {
+    text-align: center;
+    background: rgba(255,255,255,0.2);
+    border-radius: 50%;
+    width: 120px;
+    height: 120px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.confidence-value {
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.confidence-label {
+    font-size: 14px;
+    opacity: 0.9;
+}
+
+.results-section, .analysis-section, .insights-section, .model-section, .frame-analysis-section {
+    background: white;
+    border-radius: 10px;
+    padding: 25px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.results-section h3, .analysis-section h3, .insights-section h3, .model-section h3, .frame-analysis-section h3 {
+    margin-top: 0;
+    color: #333;
+    border-bottom: 2px solid #eee;
+    padding-bottom: 10px;
+}
+
+.results-grid, .analysis-grid, .model-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.result-item, .analysis-item, .model-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.label {
+    font-weight: 600;
+    color: #555;
+}
+
+.value {
+    font-weight: 500;
+    color: #333;
+}
+
+.confidence-indicator {
+    margin-top: 20px;
+    padding: 15px;
+    background: #e3f2fd;
+    border-radius: 8px;
+    text-align: center;
+    font-style: italic;
+    color: #1976d2;
+}
+
+.insight-summary {
+    font-size: 16px;
+    line-height: 1.6;
+    color: #444;
+    background: #f0f7ff;
+    padding: 20px;
+    border-radius: 8px;
+    border-left: 4px solid #2196F3;
+}
+
+.frame-table-container {
+    overflow-x: auto;
+    margin-top: 20px;
+}
+
+.frame-analysis-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.frame-analysis-table th {
+    background: #f5f5f5;
+    padding: 12px 8px;
+    text-align: left;
+    border-bottom: 2px solid #ddd;
+    font-weight: 600;
+}
+
+.frame-analysis-table td {
+    padding: 10px 8px;
+    border-bottom: 1px solid #eee;
+}
+
+.fake-frame {
+    background-color: #fff5f5;
+}
+
+.real-frame {
+    background-color: #f0fff4;
+}
+
+.prediction-cell {
+    font-weight: 600;
+}
+
+.face-detected {
+    text-align: center;
+    font-weight: bold;
+}
+
+@media (max-width: 768px) {
+    .detection-header {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .confidence-circle {
+        margin-top: 20px;
+    }
+    
+    .results-grid, .analysis-grid, .model-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>

@@ -1,0 +1,536 @@
+{% extends 'detector/base.html' %}
+{% load math_filters %}
+
+{% block title %}Deepfake Detection - Upload Video{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Hero Section -->
+    <div class="row mb-5">
+        <div class="col-12 text-center">
+            <h1 class="display-4 mb-3">
+                <i class="fas fa-shield-alt text-primary"></i>
+                Deepfake Detection System
+            </h1>
+            <p class="lead text-muted">
+                Upload a video to detect if it contains deepfake content using advanced AI technology
+            </p>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    {% if stats %}
+    <div class="row mb-5">
+        <div class="col-md-3 mb-3">
+            <div class="card stats-card text-white bg-info">
+                <div class="card-body text-center">
+                    <i class="fas fa-video fa-2x mb-2"></i>
+                    <h4>{{ stats.total_predictions }}</h4>
+                    <p class="mb-0">Videos Analyzed Successfully</p>
+                    {% if stats.all_videos_uploaded > stats.total_predictions %}
+                    <small class="text-light">
+                        ({{ stats.all_videos_uploaded }} total uploaded)
+                    </small>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card bg-success text-white">
+                <div class="card-body text-center">
+                    <i class="fas fa-check-circle fa-2x mb-2"></i>
+                    <h4>{{ stats.real_predictions }}</h4>
+                    <p class="mb-0">Real Videos Detected</p>
+                    {% if stats.total_predictions > 0 %}
+                    <small class="text-light">
+                        ({{ stats.real_predictions }}/{{ stats.total_predictions }} - {{ stats.real_predictions|percentage_of:stats.total_predictions|floatformat:1 }}%)
+                    </small>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card bg-danger text-white">
+                <div class="card-body text-center">
+                    <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
+                    <h4>{{ stats.fake_predictions }}</h4>
+                    <p class="mb-0">Deepfakes Detected</p>
+                    {% if stats.total_predictions > 0 %}
+                    <small class="text-light">
+                        ({{ stats.fake_predictions }}/{{ stats.total_predictions }} - {{ stats.fake_percentage|floatformat:1 }}%)
+                    </small>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card bg-warning text-dark">
+                <div class="card-body text-center">
+                    <i class="fas fa-percentage fa-2x mb-2"></i>
+                    <h4>{{ stats.fake_percentage|floatformat:1 }}%</h4>
+                    <p class="mb-0">Deepfake Detection Rate</p>
+                    {% if stats.avg_confidence > 0 %}
+                    <small class="text-muted">
+                        Avg Confidence: {{ stats.avg_confidence|floatformat:1 }}%
+                    </small>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Additional Statistics Row -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card bg-light">
+                <div class="card-body text-center">
+                    <i class="fas fa-chart-line fa-2x text-primary mb-2"></i>
+                    <h5>{{ stats.success_rate|floatformat:1 }}%</h5>
+                    <p class="mb-0 text-muted">Success Rate</p>
+                    {% if stats.error_predictions > 0 %}
+                    <small class="text-danger">{{ stats.error_predictions }} errors</small>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card bg-light">
+                <div class="card-body text-center">
+                    <i class="fas fa-bullseye fa-2x text-success mb-2"></i>
+                    <h5>
+                        {% if stats.model_accuracy %}
+                            {{ stats.model_accuracy|floatformat:1 }}%
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </h5>
+                    <p class="mb-0 text-muted">Model Accuracy</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card bg-light">
+                <div class="card-body text-center">
+                    <i class="fas fa-clock fa-2x text-secondary mb-2"></i>
+                    <h5>{{ stats.avg_processing_time|floatformat:1 }}s</h5>
+                    <p class="mb-0 text-muted">Avg Processing Time</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card bg-light">
+                <div class="card-body text-center">
+                    <i class="fas fa-shield-alt fa-2x text-info mb-2"></i>
+                    <h5>{{ stats.avg_confidence|floatformat:1 }}%</h5>
+                    <p class="mb-0 text-muted">Avg Detection Confidence</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Upload Section -->
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card result-card">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="card-title mb-0">
+                        <i class="fas fa-cloud-upload-alt"></i> Upload Video for Analysis
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <form id="uploadForm" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <div class="upload-area" id="uploadArea">
+                            <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
+                            <h4>Drop your video here or click to browse</h4>
+                            <p class="text-muted">
+                                Supported formats: MP4, AVI, MOV, MKV, WEBM<br>
+                                Maximum file size: 100MB
+                            </p>
+                            <input type="file" id="videoFile" name="video_file" accept=".mp4,.avi,.mov,.mkv,.webm" style="display: none;">
+                            <button type="button" class="btn btn-primary" id="browseButton">
+                                <i class="fas fa-folder-open"></i> Browse Files
+                            </button>
+                        </div>
+                        
+                        <div id="fileInfo" class="mt-3" style="display: none;">
+                            <div class="alert alert-info">
+                                <i class="fas fa-file-video"></i>
+                                <strong>Selected file:</strong> <span id="fileName"></span>
+                                (<span id="fileSize"></span>)
+                            </div>
+                        </div>
+                        
+                        <div class="mt-3">
+                            <button type="submit" class="btn btn-success btn-lg w-100" id="uploadBtn" disabled>
+                                <i class="fas fa-search"></i> Analyze Video for Deepfakes
+                            </button>
+                            <div class="d-grid gap-2 mt-3">
+                                <a href="{% url 'detector:history' %}" class="btn btn-outline-info">
+                                    <i class="fas fa-history"></i> View Detection History
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+                    
+                    <!-- Upload Progress -->
+                    <div id="uploadProgress" class="mt-3" style="display: none;">
+                        <div class="progress">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                                 role="progressbar" style="width: 0%"></div>
+                        </div>
+                        <p class="text-center mt-2">
+                            <span class="processing-spinner"></span>
+                            Uploading and processing video...
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Model Performance -->
+    {% if model_performance %}
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title mb-0">
+                        <i class="fas fa-chart-line"></i> Model Performance
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Model: {{ model_performance.model_name }} v{{ model_performance.model_version }}</h6>
+                            <p class="text-muted">Total Predictions: {{ model_performance.total_predictions }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            {% if model_performance.accuracy %}
+                            <h6>Accuracy: {{ model_performance.accuracy|floatformat:1 }}%</h6>
+                            <div class="progress">
+                                <div class="progress-bar bg-success" style="width: {{ model_performance.accuracy|floatformat:1 }}%"></div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Recent Results -->
+    {% if recent_results %}
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title mb-0">
+                        <i class="fas fa-history"></i> Recent Detection Results
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>File Name</th>
+                                    <th>Result</th>
+                                    <th>Confidence</th>
+                                    <th>Processing Time</th>
+                                    <th>Date</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for result in recent_results %}
+                                <tr>
+                                    <td>
+                                        <i class="fas fa-file-video text-primary"></i>
+                                        {{ result.original_filename|truncatechars:30 }}
+                                    </td>
+                                    <td>
+                                        {% if result.prediction == 'REAL' %}
+                                            <span class="badge bg-success">Real</span>
+                                        {% elif result.prediction == 'FAKE' %}
+                                            <span class="badge bg-danger">Deepfake</span>
+                                        {% elif result.prediction == 'PROCESSING' %}
+                                            <span class="badge bg-warning text-dark">Processing</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Error</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if result.confidence_score %}
+                                            <div class="progress" style="height: 20px;">
+                                                <div class="progress-bar bg-primary" style="width: {{ result.confidence_percentage }}%">
+                                                    {{ result.confidence_percentage }}%
+                                                </div>
+                                            </div>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if result.processing_time %}
+                                            {{ result.processing_time|floatformat:2 }}s
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ result.created_at|date:"M d, Y H:i" }}</td>
+                                    <td>
+                                        <a href="{% url 'detector:result' result.id %}" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-eye"></i> View Details
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const uploadArea = document.getElementById('uploadArea');
+    const fileInput = document.getElementById('videoFile');
+    const browseButton = document.getElementById('browseButton');
+    const uploadForm = document.getElementById('uploadForm');
+    const uploadBtn = document.getElementById('uploadBtn');
+    const fileInfo = document.getElementById('fileInfo');
+    const fileName = document.getElementById('fileName');
+    const fileSize = document.getElementById('fileSize');
+    const uploadProgress = document.getElementById('uploadProgress');
+
+    // File upload handling - prevent duplicate events
+    if (browseButton) {
+        browseButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            fileInput.click();
+        });
+    }
+    
+    // Only add click handler to upload area if not clicking on browse button
+    uploadArea.addEventListener('click', (e) => {
+        if (e.target !== browseButton && !browseButton.contains(e.target)) {
+            fileInput.click();
+        }
+    });
+    
+    uploadArea.addEventListener('dragover', handleDragOver);
+    uploadArea.addEventListener('dragleave', handleDragLeave);
+    uploadArea.addEventListener('drop', handleDrop);
+    fileInput.addEventListener('change', handleFileSelect);
+    uploadForm.addEventListener('submit', handleFormSubmit);
+
+    function handleDragOver(e) {
+        e.preventDefault();
+        uploadArea.classList.add('dragover');
+    }
+
+    function handleDragLeave(e) {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+    }
+
+    function handleDrop(e) {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            fileInput.files = files;
+            handleFileSelect();
+        }
+    }
+
+    function handleFileSelect() {
+        const file = fileInput.files[0];
+        if (file) {
+            // Validate file type
+            const allowedTypes = ['video/mp4', 'video/avi', 'video/quicktime', 'video/x-msvideo', 'video/webm'];
+            if (!allowedTypes.includes(file.type)) {
+                alert('Please select a valid video file (MP4, AVI, MOV, MKV, WEBM)');
+                return;
+            }
+
+            // Validate file size (100MB)
+            if (file.size > 100 * 1024 * 1024) {
+                alert('File size must be less than 100MB');
+                return;
+            }
+
+            // Display file info
+            fileName.textContent = file.name;
+            fileSize.textContent = formatFileSize(file.size);
+            fileInfo.style.display = 'block';
+            uploadBtn.disabled = false;
+            uploadBtn.innerHTML = '<i class="fas fa-search"></i> Analyze Video for Deepfakes';
+        }
+    }
+
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    function handleFormSubmit(e) {
+        e.preventDefault();
+        
+        const file = fileInput.files[0];
+        if (!file) {
+            alert('Please select a video file');
+            return;
+        }
+
+        // Show upload progress
+        uploadProgress.style.display = 'block';
+        uploadBtn.disabled = true;
+        uploadBtn.innerHTML = '<span class="processing-spinner"></span> Processing...';
+
+        // Create FormData and upload
+        const formData = new FormData();
+        formData.append('video_file', file);
+        formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+
+        fetch('/api/upload/', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                // Redirect to result page
+                window.location.href = data.redirect_url;
+            } else {
+                alert('Error: ' + data.message);
+                resetForm();
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred during upload. Please try again.');
+            resetForm();
+        });
+    }
+
+    function resetForm() {
+        uploadProgress.style.display = 'none';
+        uploadBtn.disabled = false;
+        uploadBtn.innerHTML = '<i class="fas fa-search"></i> Analyze Video for Deepfakes';
+    }
+
+    // Real-time statistics update
+    function updateStats() {
+        fetch('/api/stats/')
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    const stats = data.stats;
+                    
+                    // Update statistics cards
+                    updateStatCard('total_predictions', stats.total_predictions);
+                    updateStatCard('real_predictions', stats.real_predictions);
+                    updateStatCard('fake_predictions', stats.fake_predictions);
+                    updateStatCard('fake_percentage', stats.fake_percentage.toFixed(1) + '%');
+                    
+                    // Update additional stats
+                    updateStatCard('success_rate', stats.success_rate.toFixed(1) + '%');
+                    updateStatCard('model_accuracy', stats.model_accuracy ? stats.model_accuracy.toFixed(1) + '%' : 'N/A');
+                    updateStatCard('avg_processing_time', stats.avg_processing_time.toFixed(1) + 's');
+                    updateStatCard('avg_confidence', stats.avg_confidence.toFixed(1) + '%');
+                    
+                    // Update processing count indicator
+                    updateProcessingIndicator(stats.processing_predictions);
+                    
+                    console.log('Stats updated at:', data.timestamp);
+                }
+            })
+            .catch(error => {
+                console.error('Error updating stats:', error);
+            });
+    }
+
+    function updateStatCard(statType, value) {
+        // Find the card containing this stat
+        const cards = document.querySelectorAll('.card h4, .card h5');
+        cards.forEach(element => {
+            const card = element.closest('.card');
+            const text = card.querySelector('p').textContent;
+            
+            if (text.includes('Videos Analyzed Successfully') && statType === 'total_predictions') {
+                element.textContent = value;
+            } else if (text.includes('Real Videos Detected') && statType === 'real_predictions') {
+                element.textContent = value;
+            } else if (text.includes('Deepfakes Detected') && statType === 'fake_predictions') {
+                element.textContent = value;
+            } else if (text.includes('Deepfake Detection Rate') && statType === 'fake_percentage') {
+                element.textContent = value;
+            } else if (text.includes('Success Rate') && statType === 'success_rate') {
+                element.textContent = value;
+            } else if (text.includes('Model Accuracy') && statType === 'model_accuracy') {
+                element.textContent = value;
+            } else if (text.includes('Avg Processing Time') && statType === 'avg_processing_time') {
+                element.textContent = value;
+            } else if (text.includes('Avg Detection Confidence') && statType === 'avg_confidence') {
+                element.textContent = value;
+            }
+        });
+    }
+
+    function updateProcessingIndicator(count) {
+        if (count > 0) {
+            // Show processing indicator if not already shown
+            let indicator = document.getElementById('processing-indicator');
+            if (!indicator) {
+                indicator = document.createElement('div');
+                indicator.id = 'processing-indicator';
+                indicator.className = 'alert alert-info mt-3';
+                indicator.innerHTML = `
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <strong>Processing in progress:</strong> 
+                    <span id="processing-count">${count}</span> video(s) being analyzed
+                `;
+                
+                // Insert after statistics cards
+                const statsSection = document.querySelector('.row.mb-5');
+                if (statsSection) {
+                    statsSection.insertAdjacentElement('afterend', indicator);
+                }
+            } else {
+                // Update count
+                document.getElementById('processing-count').textContent = count;
+            }
+        } else {
+            // Remove processing indicator
+            const indicator = document.getElementById('processing-indicator');
+            if (indicator) {
+                indicator.remove();
+            }
+        }
+    }
+
+    // Update stats every 10 seconds
+    setInterval(updateStats, 10000);
+    
+    // Initial stats update
+    updateStats();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,829 @@
+{% extends 'detector/base.html' %}
+
+{% block title %}Detection Result - {{ result.original_filename }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .result-hero {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 20px;
+        padding: 40px;
+        margin-bottom: 30px;
+        box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+    }
+    
+    .prediction-circle {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 3rem;
+        font-weight: bold;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        margin: 0 auto 20px;
+    }
+    
+    .prediction-real {
+        background: linear-gradient(45deg, #28a745, #20c997);
+    }
+    
+    .prediction-fake {
+        background: linear-gradient(45deg, #dc3545, #fd7e14);
+    }
+    
+    .prediction-processing {
+        background: linear-gradient(45deg, #ffc107, #fd7e14);
+        color: #333;
+    }
+    
+    .prediction-error {
+        background: linear-gradient(45deg, #6c757d, #495057);
+    }
+    
+    .enhanced-card {
+        border: none;
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        margin-bottom: 30px;
+    }
+    
+    .enhanced-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+    }
+    
+    .enhanced-card-header {
+        background: linear-gradient(45deg, #f8f9fa, #e9ecef);
+        border-bottom: none;
+        border-radius: 20px 20px 0 0;
+        padding: 25px 30px;
+    }
+    
+    .enhanced-card-body {
+        padding: 30px;
+    }
+    
+    .probability-gauge {
+        position: relative;
+        width: 100px;
+        height: 100px;
+        margin: 0 auto;
+    }
+    
+    .gauge-bg {
+        stroke: #e9ecef;
+        stroke-width: 8;
+        fill: none;
+    }
+    
+    .gauge-fill {
+        stroke-width: 8;
+        fill: none;
+        stroke-linecap: round;
+        transition: stroke-dashoffset 1s ease-in-out;
+    }
+    
+    .gauge-text {
+        font-size: 14px;
+        font-weight: bold;
+        text-anchor: middle;
+        dominant-baseline: central;
+    }
+    
+    .metric-card {
+        background: white;
+        border-radius: 15px;
+        padding: 25px;
+        text-align: center;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        transition: all 0.3s ease;
+        border-left: 4px solid transparent;
+    }
+    
+    .metric-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .metric-card.real {
+        border-left-color: #28a745;
+    }
+    
+    .metric-card.fake {
+        border-left-color: #dc3545;
+    }
+    
+    .metric-card.info {
+        border-left-color: #17a2b8;
+    }
+    
+    .metric-value {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 10px;
+        background: linear-gradient(45deg, #667eea, #764ba2);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+    
+    .metric-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .chart-container {
+        position: relative;
+        height: 400px;
+        margin: 20px 0;
+    }
+    
+    .action-buttons {
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin: 40px 0;
+    }
+    
+    .action-btn {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 15px 30px;
+        border: none;
+        border-radius: 50px;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        min-width: 200px;
+        justify-content: center;
+    }
+    
+    .action-btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        text-decoration: none;
+    }
+    
+    .btn-primary-gradient {
+        background: linear-gradient(45deg, #007bff, #0056b3);
+        color: white;
+    }
+    
+    .btn-success-gradient {
+        background: linear-gradient(45deg, #28a745, #20c997);
+        color: white;
+    }
+    
+    .btn-info-gradient {
+        background: linear-gradient(45deg, #17a2b8, #138496);
+        color: white;
+    }
+    
+    .download-section {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-radius: 20px;
+        padding: 40px;
+        text-align: center;
+        margin: 40px 0;
+    }
+    
+    .download-buttons {
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-top: 25px;
+    }
+    
+    .download-btn {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 24px;
+        border: 2px solid #dee2e6;
+        border-radius: 25px;
+        text-decoration: none;
+        color: #495057;
+        background: white;
+        transition: all 0.3s ease;
+        font-weight: 500;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+    }
+    
+    .download-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        text-decoration: none;
+        color: white;
+    }
+    
+    .download-btn.pdf:hover {
+        background: #dc3545;
+        border-color: #dc3545;
+    }
+    
+    .download-btn.json:hover {
+        background: #17a2b8;
+        border-color: #17a2b8;
+    }
+    
+    .download-btn.excel:hover {
+        background: #28a745;
+        border-color: #28a745;
+    }
+    
+    .download-btn.html:hover {
+        background: #ffc107;
+        border-color: #ffc107;
+        color: #333;
+    }
+    
+    .insights-card {
+        background: linear-gradient(135deg, #fff 0%, #f8f9fa 100%);
+        border: none;
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+    }
+    
+    .animated-progress {
+        animation: progressFill 2s ease-in-out;
+    }
+    
+    @keyframes progressFill {
+        from { width: 0%; }
+    }
+    
+    @media (max-width: 768px) {
+        .result-hero {
+            padding: 25px;
+        }
+        
+        .action-buttons {
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .action-btn {
+            width: 100%;
+            max-width: 300px;
+        }
+        
+        .download-buttons {
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .download-btn {
+            width: 100%;
+            max-width: 250px;
+            justify-content: center;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'detector:home' %}">🏠 Home</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'detector:history' %}">📋 History</a></li>
+            <li class="breadcrumb-item active">🔍 Detection Result</li>
+        </ol>
+    </nav>
+
+    {% if error %}
+    <div class="alert alert-danger rounded-3 shadow-sm">
+        <i class="fas fa-exclamation-triangle"></i>
+        <strong>Error:</strong> {{ error }}
+    </div>
+    {% else %}
+    
+    <!-- Hero Section -->
+    <div class="result-hero text-center">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="display-4 mb-3">🔍 Analysis Complete</h1>
+                <h4 class="mb-3 opacity-75">{{ result.original_filename }}</h4>
+                <p class="lead opacity-75">
+                    📅 Analyzed on {{ result.processed_at|date:"M d, Y" }} at {{ result.processed_at|time:"H:i" }}
+                </p>
+            </div>
+            <div class="col-md-4">
+                {% if result.prediction == 'REAL' %}
+                    <div class="prediction-circle prediction-real">✅</div>
+                    <h3>Authentic Video</h3>
+                {% elif result.prediction == 'FAKE' %}
+                    <div class="prediction-circle prediction-fake">⚠️</div>
+                    <h3>Deepfake Detected</h3>
+                {% elif result.prediction == 'PROCESSING' %}
+                    <div class="prediction-circle prediction-processing">🔄</div>
+                    <h3>Processing...</h3>
+                {% else %}
+                    <div class="prediction-circle prediction-error">❌</div>
+                    <h3>Analysis Error</h3>
+                {% endif %}
+                {% if result.confidence_percentage %}
+                <p class="h4 mb-0 mt-2">{{ result.confidence_percentage }}% Confidence</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <!-- Processing Status -->
+    {% if result.prediction == 'PROCESSING' %}
+    <div class="enhanced-card text-center">
+        <div class="enhanced-card-body">
+            <div class="processing-spinner mb-3" style="width: 60px; height: 60px; border-width: 6px;"></div>
+            <h4>🔄 Processing Your Video...</h4>
+            <p class="text-muted">This may take a few minutes depending on video length and complexity.</p>
+            <button class="btn btn-primary-gradient action-btn" onclick="location.reload();">
+                <i class="fas fa-sync-alt"></i> Refresh Status
+            </button>
+        </div>
+    </div>
+    
+    {% elif result.has_error %}
+    <!-- Error Status -->
+    <div class="enhanced-card">
+        <div class="enhanced-card-body">
+            <div class="alert alert-danger">
+                <h5><i class="fas fa-exclamation-triangle"></i> Processing Error</h5>
+                <p>{{ result.error_message }}</p>
+                <a href="{% url 'detector:home' %}" class="btn btn-primary-gradient action-btn">
+                    <i class="fas fa-upload"></i> Try Another Video
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    {% else %}
+    <!-- Key Metrics Dashboard -->
+    <div class="row mb-4">
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="metric-card real">
+                <div class="metric-value">
+                    {% if result.real_probability %}{{ result.real_probability|floatformat:1 }}{% else %}N/A{% endif %}%
+                </div>
+                <div class="metric-label">🟢 Authentic Probability</div>
+                <div class="probability-gauge mt-3">
+                    <svg width="100" height="100">
+                        <circle class="gauge-bg" cx="50" cy="50" r="40" stroke-dasharray="251.2" stroke-dashoffset="0"></circle>
+                        <circle class="gauge-fill" cx="50" cy="50" r="40" stroke="#28a745" 
+                                stroke-dasharray="251.2" 
+                                stroke-dashoffset="251.2" id="realGauge">
+                        </circle>
+                        <text class="gauge-text" x="50" y="50">{{ result.real_probability|default:"0"|floatformat:0 }}%</text>
+                    </svg>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="metric-card fake">
+                <div class="metric-value">
+                    {% if result.fake_probability %}{{ result.fake_probability|floatformat:1 }}{% else %}N/A{% endif %}%
+                </div>
+                <div class="metric-label">🔴 Deepfake Probability</div>
+                <div class="probability-gauge mt-3">
+                    <svg width="100" height="100">
+                        <circle class="gauge-bg" cx="50" cy="50" r="40" stroke-dasharray="251.2" stroke-dashoffset="0"></circle>
+                        <circle class="gauge-fill" cx="50" cy="50" r="40" stroke="#dc3545" 
+                                stroke-dasharray="251.2" 
+                                stroke-dashoffset="251.2" id="fakeGauge">
+                        </circle>
+                        <text class="gauge-text" x="50" y="50">{{ result.fake_probability|default:"0"|floatformat:0 }}%</text>
+                    </svg>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="metric-card info">
+                <div class="metric-value">
+                    {% if result.confidence_percentage %}{{ result.confidence_percentage }}{% else %}N/A{% endif %}%
+                </div>
+                <div class="metric-label">🎯 Overall Confidence</div>
+                <div class="progress mt-3" style="height: 10px;">
+                    <div class="progress-bar bg-info animated-progress" 
+                         style="width: {% if result.confidence_percentage %}{{ result.confidence_percentage }}{% else %}0{% endif %}%">
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="metric-card info">
+                <div class="metric-value">
+                    {{ result.frames_analyzed|default:"N/A" }}
+                </div>
+                <div class="metric-label">📊 Frames Analyzed</div>
+                <div class="mt-3">
+                    <small class="text-muted">
+                        {% if result.face_detected %}
+                            ✅ {{ result.face_count|default:"1" }} face{{ result.face_count|pluralize }} detected
+                        {% else %}
+                            ❌ No faces detected
+                        {% endif %}
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Enhanced Analytics Chart -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="enhanced-card">
+                <div class="enhanced-card-header">
+                    <h5 class="mb-0">📊 Confidence Analysis Chart</h5>
+                </div>
+                <div class="enhanced-card-body">
+                    <div class="chart-container">
+                        <canvas id="confidenceChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Video Analysis Details -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="enhanced-card">
+                <div class="enhanced-card-header">
+                    <h5 class="mb-0">🎬 Video Information</h5>
+                </div>
+                <div class="enhanced-card-body">
+                    <div class="row">
+                        <div class="col-6">
+                            <p><strong>📁 File Size:</strong><br>{{ result.file_size|filesizeformat }}</p>
+                        </div>
+                        <div class="col-6">
+                            <p><strong>⏱️ Duration:</strong><br>{{ result.video_duration|floatformat:2|default:"N/A" }} seconds</p>
+                        </div>
+                        <div class="col-6">
+                            <p><strong>🎥 Frame Rate:</strong><br>{{ result.video_fps|floatformat:1|default:"N/A" }} FPS</p>
+                        </div>
+                        <div class="col-6">
+                            <p><strong>📐 Resolution:</strong><br>{{ result.video_resolution|default:"N/A" }}</p>
+                        </div>
+                        <div class="col-6">
+                            <p><strong>⏰ Processing Time:</strong><br>{{ result.processing_time|floatformat:2|default:"N/A" }} seconds</p>
+                        </div>
+                        <div class="col-6">
+                            <p><strong>📅 Analysis Date:</strong><br>{{ result.processed_at|date:"M d, Y H:i" }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="enhanced-card">
+                <div class="enhanced-card-header">
+                    <h5 class="mb-0">🤖 AI Model Details</h5>
+                </div>
+                <div class="enhanced-card-body">
+                    <div class="row">
+                        <div class="col-12">
+                            <p><strong>🧠 Model:</strong><br>{{ result.model_used|default:"Enhanced XceptionNet" }}</p>
+                        </div>
+                        <div class="col-6">
+                            <p><strong>📊 Version:</strong><br>{{ result.model_version|default:"Latest" }}</p>
+                        </div>
+                        <div class="col-6">
+                            <p><strong>🔬 Method:</strong><br>Deep Learning Analysis</p>
+                        </div>
+                        <div class="col-6">
+                            <p><strong>📈 Training Data:</strong><br>FaceForensics++ Dataset</p>
+                        </div>
+                        <div class="col-6">
+                            <p><strong>⚡ Performance:</strong><br>
+                                {% if model_accuracy %}{{ model_accuracy }}% Model Accuracy{% else %}Performance Optimized{% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detection Insights -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="insights-card enhanced-card">
+                <div class="enhanced-card-header">
+                    <h5 class="mb-0">💡 AI Detection Insights</h5>
+                </div>
+                <div class="enhanced-card-body">
+                    {% if result.prediction == 'FAKE' %}
+                        <div class="alert alert-danger border-0 rounded-3">
+                            <h6><i class="fas fa-exclamation-triangle text-danger"></i> <strong>Deepfake Detected</strong></h6>
+                            <p class="mb-2">The AI model has identified potential deepfake characteristics in this video.</p>
+                            {% if result.confidence_score > 0.8 %}
+                                <p class="mb-0"><strong>High confidence</strong> suggests strong artificial manipulation indicators.</p>
+                            {% elif result.confidence_score > 0.6 %}
+                                <p class="mb-0"><strong>Moderate confidence</strong> indicates possible deepfake elements.</p>
+                            {% else %}
+                                <p class="mb-0"><strong>Lower confidence</strong> suggests subtle manipulation patterns.</p>
+                            {% endif %}
+                        </div>
+                    {% else %}
+                        <div class="alert alert-success border-0 rounded-3">
+                            <h6><i class="fas fa-check-circle text-success"></i> <strong>Authentic Video</strong></h6>
+                            <p class="mb-2">The AI model indicates this video appears to be genuine.</p>
+                            {% if result.confidence_score > 0.8 %}
+                                <p class="mb-0"><strong>High confidence</strong> in video authenticity.</p>
+                            {% elif result.confidence_score > 0.6 %}
+                                <p class="mb-0"><strong>Good indicators</strong> of authentic content.</p>
+                            {% else %}
+                                <p class="mb-0"><strong>Some uncertainty</strong> remains - manual review recommended.</p>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                    
+                    {% if not result.face_detected %}
+                        <div class="alert alert-warning border-0 rounded-3">
+                            <strong>⚠️ Limited Analysis:</strong> 
+                            No faces were detected in this video, which may limit detection accuracy.
+                        </div>
+                    {% endif %}
+                    
+                    {% if result.frames_analyzed and result.frames_analyzed < 10 %}
+                        <div class="alert alert-info border-0 rounded-3">
+                            <strong>ℹ️ Note:</strong> 
+                            Limited frame analysis due to short video or processing constraints.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Download Reports Section -->
+    <div class="download-section">
+        <h3>📥 Download Detailed Reports</h3>
+        <p class="text-muted mb-4">Get comprehensive analysis reports in different formats for further review</p>
+        
+        <div class="download-buttons">
+            <a href="#" class="download-btn pdf" data-id="{{ result.id }}" data-format="pdf">
+                <i class="fas fa-file-pdf"></i>
+                PDF Report
+            </a>
+            <a href="#" class="download-btn json" data-id="{{ result.id }}" data-format="json">
+                <i class="fas fa-file-code"></i>
+                JSON Data
+            </a>
+            <a href="#" class="download-btn excel" data-id="{{ result.id }}" data-format="excel">
+                <i class="fas fa-file-excel"></i>
+                Excel Analysis
+            </a>
+            <a href="#" class="download-btn html" data-id="{{ result.id }}" data-format="html">
+                <i class="fas fa-file-alt"></i>
+                HTML Report
+            </a>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="action-buttons">
+        <a href="{% url 'detector:detailed_result' result.id %}" class="action-btn btn-info-gradient">
+            <i class="fas fa-chart-line"></i>
+            View Detailed Analysis
+        </a>
+        <a href="{% url 'detector:history' %}" class="action-btn btn-success-gradient">
+            <i class="fas fa-history"></i>
+            View History
+        </a>
+        <a href="{% url 'detector:home' %}" class="action-btn btn-primary-gradient">
+            <i class="fas fa-upload"></i>
+            Analyze Another Video
+        </a>
+    </div>
+    {% endif %}
+    {% endif %}
+
+{% if result.prediction == 'PROCESSING' %}
+<script>
+// Auto-refresh for processing videos
+setTimeout(function() {
+    location.reload();
+}, 5000); // Refresh every 5 seconds
+</script>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Animate gauge charts
+    function animateGauge(elementId, percentage) {
+        const gauge = document.getElementById(elementId);
+        if (gauge) {
+            const circumference = 251.2;
+            const offset = circumference - (percentage / 100) * circumference;
+            
+            // Animate the gauge
+            let start = null;
+            function animate(timestamp) {
+                if (!start) start = timestamp;
+                const progress = Math.min((timestamp - start) / 1500, 1); // 1.5 second animation
+                
+                const currentOffset = circumference - (progress * (percentage / 100) * circumference);
+                gauge.style.strokeDashoffset = currentOffset;
+                
+                if (progress < 1) {
+                    requestAnimationFrame(animate);
+                }
+            }
+            requestAnimationFrame(animate);
+        }
+    }
+    
+    // Animate both gauges
+    animateGauge('realGauge', {% if result.real_probability %}{{ result.real_probability }}{% else %}0{% endif %});
+    animateGauge('fakeGauge', {% if result.fake_probability %}{{ result.fake_probability }}{% else %}0{% endif %});
+
+    // Create enhanced confidence chart
+    const ctx = document.getElementById('confidenceChart');
+    if (ctx) {
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Authentic Probability', 'Deepfake Probability'],
+                datasets: [{
+                    data: [
+                        {% if result.real_probability %}{{ result.real_probability }}{% else %}0{% endif %},
+                        {% if result.fake_probability %}{{ result.fake_probability }}{% else %}0{% endif %}
+                    ],
+                    backgroundColor: [
+                        'rgba(40, 167, 69, 0.8)',
+                        'rgba(220, 53, 69, 0.8)'
+                    ],
+                    borderColor: [
+                        'rgba(40, 167, 69, 1)',
+                        'rgba(220, 53, 69, 1)'
+                    ],
+                    borderWidth: 3,
+                    hoverOffset: 10
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Detection Confidence Distribution',
+                        font: {
+                            size: 16,
+                            weight: 'bold'
+                        },
+                        padding: 20
+                    },
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 20,
+                            font: {
+                                size: 14
+                            }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.parsed;
+                                return label + ': ' + value.toFixed(1) + '%';
+                            }
+                        }
+                    }
+                },
+                animation: {
+                    animateRotate: true,
+                    duration: 2000
+                }
+            }
+        });
+    }
+
+    // Download functionality with proper error handling
+    document.querySelectorAll('.download-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const resultId = this.dataset.id;
+            const format = this.dataset.format;
+            
+            if (!resultId || !format) {
+                showAlert('Invalid download parameters.', 'error');
+                return;
+            }
+            
+            // Add loading state
+            const originalText = this.innerHTML;
+            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+            this.style.pointerEvents = 'none';
+            
+            // Create download URL - Fixed to match URL patterns
+            const url = `/api/download/${resultId}/${format}/`;
+            
+            // Use fetch to handle the download
+            fetch(url)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.blob();
+                })
+                .then(blob => {
+                    // Create download link
+                    const downloadUrl = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = downloadUrl;
+                    
+                    // Set filename based on format
+                    const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+                    const filename = `deepfake_analysis_${resultId.slice(0, 8)}_${timestamp}.${format}`;
+                    a.download = filename;
+                    
+                    a.style.display = 'none';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    
+                    // Clean up the object URL
+                    window.URL.revokeObjectURL(downloadUrl);
+                    
+                    showAlert(`${format.toUpperCase()} report downloaded successfully!`, 'success');
+                })
+                .catch(error => {
+                    console.error('Download error:', error);
+                    showAlert(`Failed to download ${format.toUpperCase()} report. Please try again.`, 'error');
+                })
+                .finally(() => {
+                    // Reset button state
+                    this.innerHTML = originalText;
+                    this.style.pointerEvents = 'auto';
+                });
+        });
+    });
+
+    // Animated progress bars
+    document.querySelectorAll('.animated-progress').forEach(bar => {
+        const width = bar.style.width;
+        bar.style.width = '0%';
+        setTimeout(() => {
+            bar.style.width = width;
+        }, 500);
+    });
+
+    // Gauge animations
+    document.querySelectorAll('.gauge-fill').forEach(gauge => {
+        const finalOffset = gauge.style.strokeDashoffset;
+        gauge.style.strokeDashoffset = '251.2';
+        setTimeout(() => {
+            gauge.style.transition = 'stroke-dashoffset 2s ease-in-out';
+            gauge.style.strokeDashoffset = finalOffset;
+        }, 1000);
+    });
+
+    function showAlert(message, type) {
+        // Remove existing alerts
+        document.querySelectorAll('.custom-alert').forEach(alert => alert.remove());
+        
+        const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+        const iconClass = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-triangle';
+        
+        const alert = document.createElement('div');
+        alert.className = `alert ${alertClass} alert-dismissible fade show custom-alert position-fixed`;
+        alert.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 350px; max-width: 500px; box-shadow: 0 8px 25px rgba(0,0,0,0.15);';
+        alert.innerHTML = `
+            <i class="fas ${iconClass} me-2"></i>
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+        
+        document.body.appendChild(alert);
+        
+        // Auto dismiss after 5 seconds
+        setTimeout(() => {
+            if (alert.parentNode) {
+                alert.classList.remove('show');
+                setTimeout(() => alert.remove(), 150);
+            }
+        }, 5000);
+    }
+});
+</script>
+{% endblock %}

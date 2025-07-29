@@ -1,0 +1,219 @@
+{
+  "prediction": "FAKE",
+  "confidence_score": 51.209740340709686,
+  "real_probability": 48.8,
+  "fake_probability": 51.2,
+  "enhanced_data": {
+    "confidence_level": "Low",
+    "video_analysis": {
+      "file_name": "033.mp4",
+      "file_size": "1.8 MB",
+      "duration": "32.36 seconds",
+      "frame_rate": "25.0 FPS",
+      "resolution": "854x480",
+      "total_frames": 809,
+      "frames_analyzed": 20,
+      "faces_detected": "20 faces",
+      "processing_time": "13.28 seconds",
+      "analysis_date": "Jul 29, 2025 09:31"
+    },
+    "insights": {
+      "summary": "Moderate evidence of deepfake content. Further analysis may be needed for certainty.",
+      "confidence_description": "Low confidence indicates synthetic video content"
+    },
+    "model_info": {
+      "model_name": "Enhanced XceptionNet (legacy)",
+      "version": "2.0",
+      "method": "Deep Learning - XceptionNet (legacy architecture)",
+      "training_data": "FaceForensics++ Dataset + Custom Training",
+      "architecture": "LegacyXceptionNet"
+    },
+    "frame_analysis": [
+      {
+        "frame_number": 0,
+        "timestamp": "0.00s",
+        "prediction": "Fake",
+        "confidence": 0.5271994471549988,
+        "real_percent": "47.3%",
+        "fake_percent": "52.7%",
+        "face_detected": "\u2713"
+      },
+      {
+        "frame_number": 42,
+        "timestamp": "1.68s",
+        "prediction": "Fake",
+        "confidence": 0.5270779728889465,
+        "real_percent": "47.3%",
+        "fake_percent": "52.7%",
+        "face_detected": "\u2713"
+      },
+      {
+        "frame_number": 85,
+        "timestamp": "3.40s",
+        "prediction": "Fake",
+        "confidence": 0.5278881788253784,
+        "real_percent": "47.2%",
+        "fake_percent": "52.8%",
+        "face_detected": "\u2713"
+      },
+      {
+        "frame_number": 127,
+        "timestamp": "5.08s",
+        "prediction": "Fake",
+        "confidence": 0.5301114916801453,
+        "real_percent": "47.0%",
+        "fake_percent": "53.0%",
+        "face_detected": "\u2713"
+      },
+      {
+        "frame_number": 170,
+        "timestamp": "6.80s",
+        "prediction": "Fake",
+        "confidence": 0.5396816730499268,
+        "real_percent": "46.0%",
+        "fake_percent": "54.0%",
+        "face_detected": "\u2713"
+      },
+      {
+        "frame_number": 212,
+        "timestamp": "8.48s",
+        "prediction": "Fake",
+        "confidence": 0.5304735898971558,
+        "real_percent": "47.0%",
+        "fake_percent": "53.0%",
+        "face_detected": "\u2713"
+      },
+      {
+        "frame_number": 255,
+        "timestamp": "10.20s",
+        "prediction": "Fake",
+        "confidence": 0.5248432159423828,
+        "real_percent": "47.5%",
+        "fake_percent": "52.5%",
+        "face_detected": "\u2713"
+      },
+      {
+        "frame_number": 297,
+        "timestamp": "11.88s",
+        "prediction": "Fake",
+        "confidence": 0.534558892250061,
+        "real_percent": "46.5%",
+        "fake_percent": "53.5%",
+        "face_detected": "\u2713"
+      },
+      {
+        "frame_number": 340,
+        "timestamp": "13.60s",
+        "prediction": "Fake",
+        "confidence": 0.5318424701690674,
+        "real_percent": "46.8%",
+        "fake_percent": "53.2%",
+        "face_detected": "\u2713"
+      },
+      {
+        "frame_number": 382,
+        "timestamp": "15.28s",
+        "prediction": "Fake",
+        "confidence": 0.526600182056427,
+        "real_percent": "47.3%",
+        "fake_percent": "52.7%",
+        "face_detected": "\u2713"
+      },
+      {
+        "frame_number": 425,
+        "timestamp": "17.00s",
+        "prediction": "Fake",
+        "confidence": 0.5232146382331848,
+        "real_percent": "47.7%",
+        "fake_percent": "52.3%",
+        "face_detected": "\u2713"
+      },
+      {
+        "frame_number": 467,
+        "timestamp": "18.68s",
+        "prediction": "Fake",
+        "confidence": 0.5340064764022827,
+        "real_percent": "46.6%",
+        "fake_percent": "53.4%",
+        "face_detected": "\u2713"
+      },
+      {
+        "frame_number": 510,
+        "timestamp": "20.40s",
+        "prediction": "Fake",
+        "confidence": 0.532748281955719,
+        "real_percent": "46.7%",
+        "fake_percent": "53.3%",
+        "face_detected": "\u2713"
+      },
+      {
+        "frame_number": 552,
+        "timestamp": "22.08s",
+        "prediction": "Fake",
+        "confidence": 0.5288550853729248,
+        "real_percent": "47.1%",
+        "fake_percent": "52.9%",
+        "face_detected": "\u2713"
+      },
+      {
+        "frame_number": 595,
+        "timestamp": "23.80s",
+        "prediction": "Fake",
+        "confidence": 0.5199580788612366,
+        "real_percent": "48.0%",
+        "fake_percent": "52.0%",
+        "face_detected": "\u2713"
+      },
+      {
+        "frame_number": 637,
+        "timestamp": "25.48s",
+        "prediction": "Fake",
+        "confidence": 0.5250118374824524,
+        "real_percent": "47.5%",
+        "fake_percent": "52.5%",
+        "face_detected": "\u2713"
+      },
+      {
+        "frame_number": 680,
+        "timestamp": "27.20s",
+        "prediction": "Fake",
+        "confidence": 0.5328867435455322,
+        "real_percent": "46.7%",
+        "fake_percent": "53.3%",
+        "face_detected": "\u2713"
+      },
+      {
+        "frame_number": 722,
+        "timestamp": "28.88s",
+        "prediction": "Fake",
+        "confidence": 0.5180134177207947,
+        "real_percent": "48.2%",
+        "fake_percent": "51.8%",
+        "face_detected": "\u2713"
+      },
+      {
+        "frame_number": 765,
+        "timestamp": "30.60s",
+        "prediction": "Fake",
+        "confidence": 0.5287877321243286,
+        "real_percent": "47.1%",
+        "fake_percent": "52.9%",
+        "face_detected": "\u2713"
+      },
+      {
+        "frame_number": 808,
+        "timestamp": "32.32s",
+        "prediction": "Real",
+        "confidence": 0.1981886625289917,
+        "real_percent": "80.2%",
+        "fake_percent": "19.8%",
+        "face_detected": "\u2713"
+      }
+    ]
+  },
+  "model_used": "Enhanced XceptionNet (legacy)",
+  "model_version": "2.0",
+  "detection_method": "Deep Learning - XceptionNet (legacy architecture)",
+  "frames_analyzed": 20,
+  "processing_time": "13.28 seconds"
+}

@@ -1,0 +1,709 @@
+{% extends 'detector/base.html' %}
+
+{% block title %}Detection History - Deepfake Detection{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="display-5 mb-3">
+                <i class="fas fa-history text-primary"></i>
+                Detection History
+            </h1>
+            <p class="lead text-muted">
+                View and filter all video detection results
+            </p>
+        </div>
+    </div>
+
+    <!-- Statistics Cards for Filtered Results -->
+    {% if filtered_stats %}
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card stats-card text-white bg-info">
+                <div class="card-body text-center">
+                    <i class="fas fa-video fa-2x mb-2"></i>
+                    <h4>{{ filtered_stats.total_count }}</h4>
+                    <p class="mb-0">Total Videos</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card bg-success text-white">
+                <div class="card-body text-center">
+                    <i class="fas fa-check-circle fa-2x mb-2"></i>
+                    <h4>{{ filtered_stats.real_count }}</h4>
+                    <p class="mb-0">Real Videos</p>
+                    <small class="text-light">{{ filtered_stats.real_percentage|floatformat:1 }}%</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card bg-danger text-white">
+                <div class="card-body text-center">
+                    <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
+                    <h4>{{ filtered_stats.fake_count }}</h4>
+                    <p class="mb-0">Deepfakes</p>
+                    <small class="text-light">{{ filtered_stats.fake_percentage|floatformat:1 }}%</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card bg-warning text-dark">
+                <div class="card-body text-center">
+                    <i class="fas fa-cog fa-2x mb-2"></i>
+                    <h4>{{ filtered_stats.processing_count }}</h4>
+                    <p class="mb-0">Processing</p>
+                    {% if filtered_stats.error_count > 0 %}
+                    <small class="text-danger">{{ filtered_stats.error_count }} errors</small>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Filters and Search -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <form method="GET" class="row g-3">
+                        <div class="col-md-4">
+                            <label for="search" class="form-label">Search by filename</label>
+                            <input type="text" class="form-control" id="search" name="search" 
+                                   value="{{ search_query }}" placeholder="Enter filename...">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="status" class="form-label">Filter by status</label>
+                            <select class="form-select" id="status" name="status">
+                                <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Status</option>
+                                <option value="real" {% if status_filter == 'real' %}selected{% endif %}>Real Videos</option>
+                                <option value="fake" {% if status_filter == 'fake' %}selected{% endif %}>Deepfakes</option>
+                                <option value="processing" {% if status_filter == 'processing' %}selected{% endif %}>Processing</option>
+                                <option value="error" {% if status_filter == 'error' %}selected{% endif %}>Errors</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary me-2">
+                                <i class="fas fa-filter"></i> Filter
+                            </button>
+                            <a href="{% url 'detector:history' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-undo"></i> Reset
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results Table -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="card-title mb-0">
+                        <i class="fas fa-list"></i> Detection Results
+                    </h4>
+                    <div>
+                        <div class="btn-group me-2" style="display: none;" id="bulkActions">
+                            <button type="button" class="btn btn-info dropdown-toggle" data-bs-toggle="dropdown">
+                                <i class="fas fa-download"></i> Bulk Download
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item bulk-download" href="#" data-format="pdf">
+                                    <i class="fas fa-file-pdf text-danger"></i> PDF Reports</a></li>
+                                <li><a class="dropdown-item bulk-download" href="#" data-format="json">
+                                    <i class="fas fa-file-code text-info"></i> JSON Data</a></li>
+                                <li><a class="dropdown-item bulk-download" href="#" data-format="excel">
+                                    <i class="fas fa-file-excel text-success"></i> Excel Reports</a></li>
+                            </ul>
+                        </div>
+                        <button id="bulkDeleteBtn" class="btn btn-danger me-2" style="display: none;">
+                            <i class="fas fa-trash"></i> Delete Selected
+                        </button>
+                        <a href="{% url 'detector:home' %}" class="btn btn-success">
+                            <i class="fas fa-plus"></i> New Detection
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if page_obj %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th width="30">
+                                        <input type="checkbox" id="selectAll" class="form-check-input">
+                                    </th>
+                                    <th>File Name</th>
+                                    <th>Status</th>
+                                    <th>Confidence</th>
+                                    <th>Real Prob</th>
+                                    <th>Fake Prob</th>
+                                    <th>Processing Time</th>
+                                    <th>Model Version</th>
+                                    <th>Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for result in page_obj %}
+                                <tr data-id="{{ result.id }}">
+                                    <td>
+                                        <input type="checkbox" class="form-check-input result-checkbox" value="{{ result.id }}">
+                                    </td>
+                                    <td>
+                                        <i class="fas fa-file-video text-primary"></i>
+                                        <span class="ms-2">{{ result.original_filename|truncatechars:25 }}</span>
+                                        {% if result.file_size %}
+                                        <br><small class="text-muted">{{ result.file_size|filesizeformat }}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if result.prediction == 'REAL' %}
+                                            <span class="badge bg-success">
+                                                <i class="fas fa-check"></i> Real
+                                            </span>
+                                        {% elif result.prediction == 'FAKE' %}
+                                            <span class="badge bg-danger">
+                                                <i class="fas fa-exclamation-triangle"></i> Deepfake
+                                            </span>
+                                        {% elif result.prediction == 'PROCESSING' %}
+                                            <span class="badge bg-warning text-dark">
+                                                <i class="fas fa-spinner fa-spin"></i> Processing
+                                            </span>
+                                        {% elif result.prediction == 'ERROR' %}
+                                            <span class="badge bg-secondary">
+                                                <i class="fas fa-times"></i> Error
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-light text-dark">Unknown</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if result.confidence_score and result.prediction in 'REAL,FAKE' %}
+                                            <div class="progress" style="height: 20px; min-width: 80px;">
+                                                {% if result.prediction == 'REAL' %}
+                                                    <div class="progress-bar bg-success" style="width: {{ result.confidence_percentage }}%">
+                                                        {{ result.confidence_percentage|floatformat:1 }}%
+                                                    </div>
+                                                {% else %}
+                                                    <div class="progress-bar bg-danger" style="width: {{ result.confidence_percentage }}%">
+                                                        {{ result.confidence_percentage|floatformat:1 }}%
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if result.real_probability %}
+                                            <span class="text-success fw-bold">{{ result.real_probability|floatformat:1 }}%</span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if result.fake_probability %}
+                                            <span class="text-danger fw-bold">{{ result.fake_probability|floatformat:1 }}%</span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if result.processing_time %}
+                                            {{ result.processing_time|floatformat:2 }}s
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if result.model_version %}
+                                            <span class="badge bg-info">v{{ result.model_version }}</span>
+                                            {% if result.detection_method %}
+                                            <br><small class="text-muted">{{ result.detection_method|truncatechars:20 }}</small>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div>{{ result.created_at|date:"M d, Y" }}</div>
+                                        <small class="text-muted">{{ result.created_at|time:"H:i" }}</small>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group-vertical btn-group-sm" role="group">
+                                            <a href="{% url 'detector:result' result.id %}" class="btn btn-outline-primary btn-sm">
+                                                <i class="fas fa-eye"></i> View
+                                            </a>
+                                            {% if result.prediction == 'PROCESSING' %}
+                                            <button class="btn btn-outline-warning btn-sm stop-processing" data-id="{{ result.id }}">
+                                                <i class="fas fa-stop"></i> Stop
+                                            </button>
+                                            <button class="btn btn-outline-info btn-sm refresh-status" data-id="{{ result.id }}">
+                                                <i class="fas fa-refresh"></i> Refresh
+                                            </button>
+                                            {% else %}
+                                            <!-- Download Options -->
+                                            <div class="btn-group btn-group-sm">
+                                                <button type="button" class="btn btn-outline-success btn-sm dropdown-toggle" data-bs-toggle="dropdown">
+                                                    <i class="fas fa-download"></i> Download
+                                                </button>
+                                                <ul class="dropdown-menu">
+                                                    <li><a class="dropdown-item download-report" href="#" data-id="{{ result.id }}" data-format="pdf">
+                                                        <i class="fas fa-file-pdf text-danger"></i> PDF Report</a></li>
+                                                    <li><a class="dropdown-item download-report" href="#" data-id="{{ result.id }}" data-format="json">
+                                                        <i class="fas fa-file-code text-info"></i> JSON Data</a></li>
+                                                    <li><a class="dropdown-item download-report" href="#" data-id="{{ result.id }}" data-format="excel">
+                                                        <i class="fas fa-file-excel text-success"></i> Excel Report</a></li>
+                                                    <li><a class="dropdown-item download-report" href="#" data-id="{{ result.id }}" data-format="html">
+                                                        <i class="fas fa-file-alt text-warning"></i> HTML Report</a></li>
+                                                </ul>
+                                            </div>
+                                            <a href="{% url 'detector:detailed_result' result.id %}" class="btn btn-outline-info btn-sm">
+                                                <i class="fas fa-chart-line"></i> Detailed
+                                            </a>
+                                            <button class="btn btn-outline-danger btn-sm delete-single" data-id="{{ result.id }}" data-filename="{{ result.original_filename }}">
+                                                <i class="fas fa-trash"></i> Delete
+                                            </button>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="9" class="text-center py-4">
+                                        <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                                        <h5 class="text-muted">No results found</h5>
+                                        <p class="text-muted">Try adjusting your search or filter criteria</p>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    {% if page_obj.has_other_pages %}
+                    <nav aria-label="Page navigation" class="mt-4">
+                        <ul class="pagination justify-content-center">
+                            {% if page_obj.has_previous %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter != 'all' %}&status={{ status_filter }}{% endif %}">
+                                        <i class="fas fa-angle-double-left"></i>
+                                    </a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter != 'all' %}&status={{ status_filter }}{% endif %}">
+                                        <i class="fas fa-angle-left"></i>
+                                    </a>
+                                </li>
+                            {% endif %}
+
+                            {% for num in page_obj.paginator.page_range %}
+                                {% if page_obj.number == num %}
+                                    <li class="page-item active">
+                                        <span class="page-link">{{ num }}</span>
+                                    </li>
+                                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter != 'all' %}&status={{ status_filter }}{% endif %}">{{ num }}</a>
+                                    </li>
+                                {% endif %}
+                            {% endfor %}
+
+                            {% if page_obj.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter != 'all' %}&status={{ status_filter }}{% endif %}">
+                                        <i class="fas fa-angle-right"></i>
+                                    </a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter != 'all' %}&status={{ status_filter }}{% endif %}">
+                                        <i class="fas fa-angle-double-right"></i>
+                                    </a>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    {% endif %}
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-video fa-3x text-muted mb-3"></i>
+                        <h4 class="text-muted">No detection results yet</h4>
+                        <p class="text-muted">Upload your first video to get started</p>
+                        <a href="{% url 'detector:home' %}" class="btn btn-primary">
+                            <i class="fas fa-upload"></i> Upload Video
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Toggle all checkboxes
+    const selectAllCheckbox = document.getElementById('selectAll');
+    if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener('change', function() {
+            const checkboxes = document.querySelectorAll('.result-checkbox');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = this.checked;
+            });
+            updateBulkDeleteButton();
+        });
+    }
+
+    // Update bulk delete button state
+    function updateBulkDeleteButton() {
+        const selectedBoxes = document.querySelectorAll('.result-checkbox:checked');
+        const bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
+        const bulkActions = document.getElementById('bulkActions');
+        
+        if (bulkDeleteBtn && bulkActions) {
+            if (selectedBoxes.length > 0) {
+                bulkDeleteBtn.style.display = 'inline-block';
+                bulkActions.style.display = 'inline-block';
+                bulkDeleteBtn.innerHTML = `<i class="fas fa-trash"></i> Delete Selected (${selectedBoxes.length})`;
+            } else {
+                bulkDeleteBtn.style.display = 'none';
+                bulkActions.style.display = 'none';
+            }
+        }
+    }
+
+    // Handle individual checkbox changes
+    document.querySelectorAll('.result-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', updateBulkDeleteButton);
+    });
+
+    // Bulk delete functionality
+    const bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
+    if (bulkDeleteBtn) {
+        bulkDeleteBtn.addEventListener('click', function() {
+            const selectedBoxes = document.querySelectorAll('.result-checkbox:checked');
+            const selectedIds = Array.from(selectedBoxes).map(box => box.value);
+            
+            if (selectedIds.length === 0) {
+                alert('Please select records to delete.');
+                return;
+            }
+
+            if (confirm(`Are you sure you want to delete ${selectedIds.length} selected record(s)? This action cannot be undone.`)) {
+                deleteBulkRecords(selectedIds);
+            }
+        });
+    }
+
+    // Single delete functionality
+    document.querySelectorAll('.delete-single').forEach(button => {
+        button.addEventListener('click', function() {
+            const recordId = this.dataset.id;
+            const filename = this.dataset.filename;
+            
+            if (confirm(`Are you sure you want to delete the detection result for "${filename}"? This action cannot be undone.`)) {
+                deleteSingleRecord(recordId);
+            }
+        });
+    });
+
+    // Stop processing functionality
+    document.querySelectorAll('.stop-processing').forEach(button => {
+        button.addEventListener('click', function() {
+            const recordId = this.dataset.id;
+            
+            if (confirm('Are you sure you want to stop this processing? The partial results will be lost.')) {
+                stopProcessing(recordId);
+            }
+        });
+    });
+
+    // Refresh status functionality
+    document.querySelectorAll('.refresh-status').forEach(button => {
+        button.addEventListener('click', function() {
+            const recordId = this.dataset.id;
+            refreshStatus(recordId);
+        });
+    });
+
+    // Download report functionality
+    document.querySelectorAll('.download-report').forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const recordId = this.dataset.id;
+            const format = this.dataset.format;
+            downloadReport(recordId, format);
+        });
+    });
+
+    // Bulk download functionality
+    document.querySelectorAll('.bulk-download').forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const format = this.dataset.format;
+            const selectedIds = getSelectedIds();
+            
+            if (selectedIds.length === 0) {
+                alert('Please select reports to download.');
+                return;
+            }
+            
+            bulkDownload(selectedIds, format);
+        });
+    });
+
+    // Delete single record
+    function deleteSingleRecord(recordId) {
+        fetch('/api/delete/', {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({ ids: [recordId] })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Remove the row from the table
+                const row = document.querySelector(`tr[data-id="${recordId}"]`);
+                if (row) {
+                    row.remove();
+                }
+                showAlert('Record deleted successfully.', 'success');
+                
+                // Check if table is empty
+                checkEmptyTable();
+            } else {
+                showAlert('Error deleting record: ' + (data.error || 'Unknown error'), 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('Error deleting record. Please try again.', 'danger');
+        });
+    }
+
+    // Delete bulk records
+    function deleteBulkRecords(recordIds) {
+        fetch('/api/delete/', {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({ ids: recordIds })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Remove the rows from the table
+                recordIds.forEach(id => {
+                    const row = document.querySelector(`tr[data-id="${id}"]`);
+                    if (row) {
+                        row.remove();
+                    }
+                });
+                
+                showAlert(`${recordIds.length} record(s) deleted successfully.`, 'success');
+                
+                // Reset bulk delete button
+                if (selectAllCheckbox) {
+                    selectAllCheckbox.checked = false;
+                }
+                updateBulkDeleteButton();
+                
+                // Check if table is empty
+                checkEmptyTable();
+            } else {
+                showAlert('Error deleting records: ' + (data.error || 'Unknown error'), 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('Error deleting records. Please try again.', 'danger');
+        });
+    }
+
+    // Stop processing
+    function stopProcessing(recordId) {
+        const button = document.querySelector(`.stop-processing[data-id="${recordId}"]`);
+        const originalText = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Stopping...';
+        button.disabled = true;
+
+        fetch('/api/stop/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({ record_id: recordId })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert('Processing stopped successfully.', 'success');
+                
+                // Reload the page to get updated status
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showAlert('Error stopping processing: ' + (data.error || 'Unknown error'), 'danger');
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('Error stopping processing. Please try again.', 'danger');
+            button.innerHTML = originalText;
+            button.disabled = false;
+        });
+    }
+
+    // Refresh status
+    function refreshStatus(recordId) {
+        const button = document.querySelector(`.refresh-status[data-id="${recordId}"]`);
+        const originalText = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        button.disabled = true;
+
+        // Just reload the page to get updated status
+        setTimeout(() => location.reload(), 500);
+    }
+
+    // Check if table is empty and show message
+    function checkEmptyTable() {
+        const tbody = document.querySelector('table tbody');
+        const rows = tbody.querySelectorAll('tr:not(.empty-message)');
+        
+        if (rows.length === 0) {
+            tbody.innerHTML = `
+                <tr class="empty-message">
+                    <td colspan="10" class="text-center py-4">
+                        <div class="text-muted">
+                            <i class="fas fa-inbox fa-3x mb-3"></i>
+                            <p>No detection records found.</p>
+                            <a href="/" class="btn btn-primary">
+                                <i class="fas fa-upload"></i> Upload Your First Video
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }
+    }
+
+    // Show alert messages
+    function showAlert(message, type) {
+        const container = document.querySelector('.container');
+        const alert = document.createElement('div');
+        alert.className = `alert alert-${type} alert-dismissible fade show mt-3`;
+        alert.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        // Insert at the top of the container
+        container.insertBefore(alert, container.firstChild);
+        
+        // Auto dismiss after 5 seconds
+        setTimeout(() => {
+            if (alert.parentNode) {
+                alert.remove();
+            }
+        }, 5000);
+    }
+
+    // Get CSRF token
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    // Get selected IDs
+    function getSelectedIds() {
+        const selectedBoxes = document.querySelectorAll('.result-checkbox:checked');
+        return Array.from(selectedBoxes).map(box => box.value);
+    }
+
+    // Download single report
+    function downloadReport(recordId, format) {
+        const url = `/detector/api/download/${recordId}/${format}/`;
+        
+        // Create temporary link and click it
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = '';
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        
+        showAlert(`${format.toUpperCase()} report download started.`, 'info');
+    }
+
+    // Bulk download reports
+    function bulkDownload(recordIds, format) {
+        showAlert('Preparing bulk download...', 'info');
+        
+        fetch('/detector/api/bulk-download/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                result_ids: recordIds,
+                format: format
+            })
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Bulk download failed');
+            }
+            return response.blob();
+        })
+        .then(blob => {
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `deepfake_reports_${new Date().toISOString().split('T')[0]}.zip`;
+            a.style.display = 'none';
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+            
+            showAlert(`Bulk download of ${recordIds.length} reports completed.`, 'success');
+        })
+        .catch(error => {
+            console.error('Bulk download error:', error);
+            showAlert('Bulk download failed. Please try again.', 'danger');
+        });
+    }
+
+    // Initialize the page
+    updateBulkDeleteButton();
+});
+</script>
+{% endblock %}

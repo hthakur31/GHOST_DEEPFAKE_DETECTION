@@ -1,0 +1,714 @@
+{
+  "analysis_summary": {
+    "file_name": "945.mp4",
+    "file_size_mb": 3.49,
+    "upload_time": "2025-07-29T12:02:29.901239+00:00",
+    "processing_time": 21.806523323059082,
+    "final_prediction": "FAKE",
+    "confidence_score": 0.5394794762134552,
+    "confidence_percentage": 53.95,
+    "is_deepfake": true,
+    "model_used": "Enhanced XceptionNet (improved)",
+    "model_version": "2.0",
+    "detection_method": "Deep Learning - XceptionNet (improved architecture)"
+  },
+  "video_metadata": {
+    "duration_seconds": 25.37,
+    "fps": 30.0,
+    "resolution": "1280x720",
+    "frames_analyzed": 30,
+    "face_detected": true,
+    "face_count": 30
+  },
+  "technical_details": {
+    "threshold_used": null,
+    "temporal_consistency": null,
+    "real_probability": 46.05205237865449,
+    "fake_probability": 53.94794762134551,
+    "processing_method": "Deep Learning - XceptionNet (improved architecture)"
+  },
+  "frame_analysis": [],
+  "statistical_analysis": {
+    "confidence_distribution": {},
+    "temporal_patterns": {},
+    "detection_stability": {}
+  },
+  "risk_assessment": {
+    "risk_level": "LOW",
+    "risk_factors": [
+      "Low confidence deepfake detection - requires manual review"
+    ],
+    "reliability_score": 0.7
+  },
+  "recommendations": [
+    "⚠️ Potential deepfake detected - verify source authenticity",
+    "📋 Consider secondary verification with alternative detection methods",
+    "🔍 Low confidence score - manual expert review recommended",
+    "📊 Save this report for audit trail and documentation",
+    "🔄 Regular model updates improve detection accuracy"
+  ],
+  "enhanced_metadata": {
+    "model_results": {
+      "xception": {
+        "prediction": "FAKE",
+        "confidence": 0.5394794762134552,
+        "confidence_percent": "53.95%",
+        "confidence_level": "Low",
+        "authentic_probability": "46.1%",
+        "deepfake_probability": "53.9%",
+        "deepfake_ratio": 1.0,
+        "frames_analyzed": 30,
+        "model_type": "Enhanced XceptionNet",
+        "video_analysis": {
+          "file_name": "1697f4a2-b025-4a71-8b83-fa4006f4c284.mp4",
+          "file_size": "3.5 MB",
+          "duration": "25.37 seconds",
+          "frame_rate": "30.0 FPS",
+          "resolution": "1280x720",
+          "total_frames": 761,
+          "frames_analyzed": 30,
+          "faces_detected": "30 faces",
+          "processing_time": "21.81 seconds",
+          "analysis_date": "Jul 29, 2025 17:32"
+        },
+        "insights": {
+          "summary": "Moderate evidence of deepfake content. Further analysis may be needed for certainty.",
+          "confidence_description": "Low confidence indicates synthetic video content"
+        },
+        "model_info": {
+          "model_name": "Enhanced XceptionNet (improved)",
+          "version": "2.0",
+          "method": "Deep Learning - XceptionNet (improved architecture)",
+          "training_data": "FaceForensics++ Dataset + Custom Training",
+          "architecture": "ImprovedXceptionNet with Attention"
+        },
+        "frame_analysis": [
+          {
+            "frame_number": 0,
+            "timestamp": "0.00s",
+            "prediction": "Fake",
+            "confidence": 0.5291693210601807,
+            "real_percent": "47.1%",
+            "fake_percent": "52.9%",
+            "face_detected": "✓"
+          },
+          {
+            "frame_number": 26,
+            "timestamp": "0.87s",
+            "prediction": "Fake",
+            "confidence": 0.5317924618721008,
+            "real_percent": "46.8%",
+            "fake_percent": "53.2%",
+            "face_detected": "✓"
+          },
+          {
+            "frame_number": 52,
+            "timestamp": "1.73s",
+            "prediction": "Fake",
+            "confidence": 0.5390583872795105,
+            "real_percent": "46.1%",
+            "fake_percent": "53.9%",
+            "face_detected": "✓"
+          },
+          {
+            "frame_number": 78,
+            "timestamp": "2.60s",
+            "prediction": "Fake",
+            "confidence": 0.5301187038421631,
+            "real_percent": "47.0%",
+            "fake_percent": "53.0%",
+            "face_detected": "✓"
+          },
+          {
+            "frame_number": 104,
+            "timestamp": "3.47s",
+            "prediction": "Fake",
+            "confidence": 0.5392034649848938,
+            "real_percent": "46.1%",
+            "fake_percent": "53.9%",
+            "face_detected": "✓"
+          },
+          {
+            "frame_number": 131,
+            "timestamp": "4.37s",
+            "prediction": "Fake",
+            "confidence": 0.5340791940689087,
+            "real_percent": "46.6%",
+            "fake_percent": "53.4%",
+            "face_detected": "✓"
+          },
+          {
+            "frame_number": 157,
+            "timestamp": "5.23s",
+            "prediction": "Fake",
+            "confidence": 0.5424354672431946,
+            "real_percent": "45.8%",
+            "fake_percent": "54.2%",
+            "face_detected": "✓"
+          },
+          {
+            "frame_number": 183,
+            "timestamp": "6.10s",
+            "prediction": "Fake",
+            "confidence": 0.5364174246788025,
+            "real_percent": "46.4%",
+            "fake_percent": "53.6%",
+            "face_detected": "✓"
+          },
+          {
+            "frame_number": 209,
+            "timestamp": "6.97s",
+            "prediction": "Fake",
+            "confidence": 0.5353420972824097,
+            "real_percent": "46.5%",
+            "fake_percent": "53.5%",
+            "face_detected": "✓"
+          },
+          {
+            "frame_number": 235,
+            "timestamp": "7.83s",
+            "prediction": "Fake",
+            "confidence": 0.5433007478713989,
+            "real_percent": "45.7%",
+            "fake_percent": "54.3%",
+            "face_detected": "✓"
+          },
+          {
+            "frame_number": 262,
+            "timestamp": "8.73s",
+            "prediction": "Fake",
+            "confidence": 0.5384248495101929,
+            "real_percent": "46.2%",
+            "fake_percent": "53.8%",
+            "face_detected": "✓"
+          },
+          {
+            "frame_number": 288,
+            "timestamp": "9.60s",
+            "prediction": "Fake",
+            "confidence": 0.5440433621406555,
+            "real_percent": "45.6%",
+            "fake_percent": "54.4%",
+            "face_detected": "✓"
+          },
+          {
+            "frame_number": 314,
+            "timestamp": "10.47s",
+            "prediction": "Fake",
+            "confidence": 0.5445913672447205,
+            "real_percent": "45.5%",
+            "fake_percent": "54.5%",
+            "face_detected": "✓"
+          },
+          {
+            "frame_number": 340,
+            "timestamp": "11.33s",
+            "prediction": "Fake",
+            "confidence": 0.5366503000259399,
+            "real_percent": "46.3%",
+            "fake_percent": "53.7%",
+            "face_detected": "✓"
+          },
+          {
+            "frame_number": 366,
+            "timestamp": "12.20s",
+            "prediction": "Fake",
+            "confidence": 0.5408657193183899,
+            "real_percent": "45.9%",
+            "fake_percent": "54.1%",
+            "face_detected": "✓"
+          },
+          {
+            "frame_number": 393,
+            "timestamp": "13.10s",
+            "prediction": "Fake",
+            "confidence": 0.5445836186408997,
+            "real_percent": "45.5%",
+            "fake_percent": "54.5%",
+            "face_detected": "✓"
+          },
+          {
+            "frame_number": 419,
+            "timestamp": "13.97s",
+            "prediction": "Fake",
+            "confidence": 0.5399380922317505,
+            "real_percent": "46.0%",
+            "fake_percent": "54.0%",
+            "face_detected": "✓"
+          },
+          {
+            "frame_number": 445,
+            "timestamp": "14.83s",
+            "prediction": "Fake",
+            "confidence": 0.539303719997406,
+            "real_percent": "46.1%",
+            "fake_percent": "53.9%",
+            "face_detected": "✓"
+          },
+          {
+            "frame_number": 471,
+            "timestamp": "15.70s",
+            "prediction": "Fake",
+            "confidence": 0.5435988903045654,
+            "real_percent": "45.6%",
+            "fake_percent": "54.4%",
+            "face_detected": "✓"
+          },
+          {
+            "frame_number": 497,
+            "timestamp": "16.57s",
+            "prediction": "Fake",
+            "confidence": 0.5423164963722229,
+            "real_percent": "45.8%",
+            "fake_percent": "54.2%",
+            "face_detected": "✓"
+          },
+          {
+            "frame_number": 524,
+            "timestamp": "17.47s",
+            "prediction": "Fake",
+            "confidence": 0.5407901406288147,
+            "real_percent": "45.9%",
+            "fake_percent": "54.1%",
+            "face_detected": "✓"
+          },
+          {
+            "frame_number": 550,
+            "timestamp": "18.33s",
+            "prediction": "Fake",
+            "confidence": 0.5383404493331909,
+            "real_percent": "46.2%",
+            "fake_percent": "53.8%",
+            "face_detected": "✓"
+          },
+          {
+            "frame_number": 576,
+            "timestamp": "19.20s",
+            "prediction": "Fake",
+            "confidence": 0.5377907156944275,
+            "real_percent": "46.2%",
+            "fake_percent": "53.8%",
+            "face_detected": "✓"
+          },
+          {
+            "frame_number": 602,
+            "timestamp": "20.07s",
+            "prediction": "Fake",
+            "confidence": 0.5412993431091309,
+            "real_percent": "45.9%",
+            "fake_percent": "54.1%",
+            "face_detected": "✓"
+          },
+          {
+            "frame_number": 628,
+            "timestamp": "20.93s",
+            "prediction": "Fake",
+            "confidence": 0.5432521104812622,
+            "real_percent": "45.7%",
+            "fake_percent": "54.3%",
+            "face_detected": "✓"
+          },
+          {
+            "frame_number": 655,
+            "timestamp": "21.83s",
+            "prediction": "Fake",
+            "confidence": 0.5439554452896118,
+            "real_percent": "45.6%",
+            "fake_percent": "54.4%",
+            "face_detected": "✓"
+          },
+          {
+            "frame_number": 681,
+            "timestamp": "22.70s",
+            "prediction": "Fake",
+            "confidence": 0.5433921813964844,
+            "real_percent": "45.7%",
+            "fake_percent": "54.3%",
+            "face_detected": "✓"
+          },
+          {
+            "frame_number": 707,
+            "timestamp": "23.57s",
+            "prediction": "Fake",
+            "confidence": 0.5430532097816467,
+            "real_percent": "45.7%",
+            "fake_percent": "54.3%",
+            "face_detected": "✓"
+          },
+          {
+            "frame_number": 733,
+            "timestamp": "24.43s",
+            "prediction": "Fake",
+            "confidence": 0.5350435972213745,
+            "real_percent": "46.5%",
+            "fake_percent": "53.5%",
+            "face_detected": "✓"
+          },
+          {
+            "frame_number": 760,
+            "timestamp": "25.33s",
+            "prediction": "Fake",
+            "confidence": 0.542233407497406,
+            "real_percent": "45.8%",
+            "fake_percent": "54.2%",
+            "face_detected": "✓"
+          }
+        ],
+        "technical_details": {
+          "device": "cpu",
+          "max_frames_analyzed": 30,
+          "face_detection_method": "HOG + face_recognition",
+          "image_preprocessing": "224x224 normalization",
+          "timestamp": "2025-07-29T17:32:51.842023"
+        }
+      }
+    },
+    "primary_model": "Enhanced XceptionNet",
+    "processing_details": {
+      "processing_time": 21.806523323059082,
+      "timestamp": "2025-07-29T17:32:51.842023",
+      "models_used": [
+        "xception"
+      ]
+    },
+    "enhanced_analysis": {
+      "confidence_level": "Low",
+      "video_analysis": {
+        "file_name": "1697f4a2-b025-4a71-8b83-fa4006f4c284.mp4",
+        "file_size": "3.5 MB",
+        "duration": "25.37 seconds",
+        "frame_rate": "30.0 FPS",
+        "resolution": "1280x720",
+        "total_frames": 761,
+        "frames_analyzed": 30,
+        "faces_detected": "30 faces",
+        "processing_time": "21.81 seconds",
+        "analysis_date": "Jul 29, 2025 17:32"
+      },
+      "insights": {
+        "summary": "Moderate evidence of deepfake content. Further analysis may be needed for certainty.",
+        "confidence_description": "Low confidence indicates synthetic video content"
+      },
+      "model_info": {
+        "model_name": "Enhanced XceptionNet (improved)",
+        "version": "2.0",
+        "method": "Deep Learning - XceptionNet (improved architecture)",
+        "training_data": "FaceForensics++ Dataset + Custom Training",
+        "architecture": "ImprovedXceptionNet with Attention"
+      },
+      "frame_analysis": [
+        {
+          "frame_number": 0,
+          "timestamp": "0.00s",
+          "prediction": "Fake",
+          "confidence": 0.5291693210601807,
+          "real_percent": "47.1%",
+          "fake_percent": "52.9%",
+          "face_detected": "✓"
+        },
+        {
+          "frame_number": 26,
+          "timestamp": "0.87s",
+          "prediction": "Fake",
+          "confidence": 0.5317924618721008,
+          "real_percent": "46.8%",
+          "fake_percent": "53.2%",
+          "face_detected": "✓"
+        },
+        {
+          "frame_number": 52,
+          "timestamp": "1.73s",
+          "prediction": "Fake",
+          "confidence": 0.5390583872795105,
+          "real_percent": "46.1%",
+          "fake_percent": "53.9%",
+          "face_detected": "✓"
+        },
+        {
+          "frame_number": 78,
+          "timestamp": "2.60s",
+          "prediction": "Fake",
+          "confidence": 0.5301187038421631,
+          "real_percent": "47.0%",
+          "fake_percent": "53.0%",
+          "face_detected": "✓"
+        },
+        {
+          "frame_number": 104,
+          "timestamp": "3.47s",
+          "prediction": "Fake",
+          "confidence": 0.5392034649848938,
+          "real_percent": "46.1%",
+          "fake_percent": "53.9%",
+          "face_detected": "✓"
+        },
+        {
+          "frame_number": 131,
+          "timestamp": "4.37s",
+          "prediction": "Fake",
+          "confidence": 0.5340791940689087,
+          "real_percent": "46.6%",
+          "fake_percent": "53.4%",
+          "face_detected": "✓"
+        },
+        {
+          "frame_number": 157,
+          "timestamp": "5.23s",
+          "prediction": "Fake",
+          "confidence": 0.5424354672431946,
+          "real_percent": "45.8%",
+          "fake_percent": "54.2%",
+          "face_detected": "✓"
+        },
+        {
+          "frame_number": 183,
+          "timestamp": "6.10s",
+          "prediction": "Fake",
+          "confidence": 0.5364174246788025,
+          "real_percent": "46.4%",
+          "fake_percent": "53.6%",
+          "face_detected": "✓"
+        },
+        {
+          "frame_number": 209,
+          "timestamp": "6.97s",
+          "prediction": "Fake",
+          "confidence": 0.5353420972824097,
+          "real_percent": "46.5%",
+          "fake_percent": "53.5%",
+          "face_detected": "✓"
+        },
+        {
+          "frame_number": 235,
+          "timestamp": "7.83s",
+          "prediction": "Fake",
+          "confidence": 0.5433007478713989,
+          "real_percent": "45.7%",
+          "fake_percent": "54.3%",
+          "face_detected": "✓"
+        },
+        {
+          "frame_number": 262,
+          "timestamp": "8.73s",
+          "prediction": "Fake",
+          "confidence": 0.5384248495101929,
+          "real_percent": "46.2%",
+          "fake_percent": "53.8%",
+          "face_detected": "✓"
+        },
+        {
+          "frame_number": 288,
+          "timestamp": "9.60s",
+          "prediction": "Fake",
+          "confidence": 0.5440433621406555,
+          "real_percent": "45.6%",
+          "fake_percent": "54.4%",
+          "face_detected": "✓"
+        },
+        {
+          "frame_number": 314,
+          "timestamp": "10.47s",
+          "prediction": "Fake",
+          "confidence": 0.5445913672447205,
+          "real_percent": "45.5%",
+          "fake_percent": "54.5%",
+          "face_detected": "✓"
+        },
+        {
+          "frame_number": 340,
+          "timestamp": "11.33s",
+          "prediction": "Fake",
+          "confidence": 0.5366503000259399,
+          "real_percent": "46.3%",
+          "fake_percent": "53.7%",
+          "face_detected": "✓"
+        },
+        {
+          "frame_number": 366,
+          "timestamp": "12.20s",
+          "prediction": "Fake",
+          "confidence": 0.5408657193183899,
+          "real_percent": "45.9%",
+          "fake_percent": "54.1%",
+          "face_detected": "✓"
+        },
+        {
+          "frame_number": 393,
+          "timestamp": "13.10s",
+          "prediction": "Fake",
+          "confidence": 0.5445836186408997,
+          "real_percent": "45.5%",
+          "fake_percent": "54.5%",
+          "face_detected": "✓"
+        },
+        {
+          "frame_number": 419,
+          "timestamp": "13.97s",
+          "prediction": "Fake",
+          "confidence": 0.5399380922317505,
+          "real_percent": "46.0%",
+          "fake_percent": "54.0%",
+          "face_detected": "✓"
+        },
+        {
+          "frame_number": 445,
+          "timestamp": "14.83s",
+          "prediction": "Fake",
+          "confidence": 0.539303719997406,
+          "real_percent": "46.1%",
+          "fake_percent": "53.9%",
+          "face_detected": "✓"
+        },
+        {
+          "frame_number": 471,
+          "timestamp": "15.70s",
+          "prediction": "Fake",
+          "confidence": 0.5435988903045654,
+          "real_percent": "45.6%",
+          "fake_percent": "54.4%",
+          "face_detected": "✓"
+        },
+        {
+          "frame_number": 497,
+          "timestamp": "16.57s",
+          "prediction": "Fake",
+          "confidence": 0.5423164963722229,
+          "real_percent": "45.8%",
+          "fake_percent": "54.2%",
+          "face_detected": "✓"
+        },
+        {
+          "frame_number": 524,
+          "timestamp": "17.47s",
+          "prediction": "Fake",
+          "confidence": 0.5407901406288147,
+          "real_percent": "45.9%",
+          "fake_percent": "54.1%",
+          "face_detected": "✓"
+        },
+        {
+          "frame_number": 550,
+          "timestamp": "18.33s",
+          "prediction": "Fake",
+          "confidence": 0.5383404493331909,
+          "real_percent": "46.2%",
+          "fake_percent": "53.8%",
+          "face_detected": "✓"
+        },
+        {
+          "frame_number": 576,
+          "timestamp": "19.20s",
+          "prediction": "Fake",
+          "confidence": 0.5377907156944275,
+          "real_percent": "46.2%",
+          "fake_percent": "53.8%",
+          "face_detected": "✓"
+        },
+        {
+          "frame_number": 602,
+          "timestamp": "20.07s",
+          "prediction": "Fake",
+          "confidence": 0.5412993431091309,
+          "real_percent": "45.9%",
+          "fake_percent": "54.1%",
+          "face_detected": "✓"
+        },
+        {
+          "frame_number": 628,
+          "timestamp": "20.93s",
+          "prediction": "Fake",
+          "confidence": 0.5432521104812622,
+          "real_percent": "45.7%",
+          "fake_percent": "54.3%",
+          "face_detected": "✓"
+        },
+        {
+          "frame_number": 655,
+          "timestamp": "21.83s",
+          "prediction": "Fake",
+          "confidence": 0.5439554452896118,
+          "real_percent": "45.6%",
+          "fake_percent": "54.4%",
+          "face_detected": "✓"
+        },
+        {
+          "frame_number": 681,
+          "timestamp": "22.70s",
+          "prediction": "Fake",
+          "confidence": 0.5433921813964844,
+          "real_percent": "45.7%",
+          "fake_percent": "54.3%",
+          "face_detected": "✓"
+        },
+        {
+          "frame_number": 707,
+          "timestamp": "23.57s",
+          "prediction": "Fake",
+          "confidence": 0.5430532097816467,
+          "real_percent": "45.7%",
+          "fake_percent": "54.3%",
+          "face_detected": "✓"
+        },
+        {
+          "frame_number": 733,
+          "timestamp": "24.43s",
+          "prediction": "Fake",
+          "confidence": 0.5350435972213745,
+          "real_percent": "46.5%",
+          "fake_percent": "53.5%",
+          "face_detected": "✓"
+        },
+        {
+          "frame_number": 760,
+          "timestamp": "25.33s",
+          "prediction": "Fake",
+          "confidence": 0.542233407497406,
+          "real_percent": "45.8%",
+          "fake_percent": "54.2%",
+          "face_detected": "✓"
+        }
+      ],
+      "technical_details": {
+        "device": "cpu",
+        "max_frames_analyzed": 30,
+        "face_detection_method": "HOG + face_recognition",
+        "image_preprocessing": "224x224 normalization",
+        "timestamp": "2025-07-29T17:32:51.842023"
+      },
+      "authentic_probability": "46.1%",
+      "deepfake_probability": "53.9%"
+    },
+    "downloads": [
+      {
+        "format": "json",
+        "timestamp": "2025-07-29T12:23:38.985491+00:00",
+        "user_ip": "127.0.0.1",
+        "filename": "deepfake_data_586436bb-b15a-4141-ad89-3266f64f424c_20250729_122338.json"
+      },
+      {
+        "format": "pdf",
+        "timestamp": "2025-07-29T12:23:39.632724+00:00",
+        "user_ip": "127.0.0.1",
+        "filename": "deepfake_analysis_586436bb-b15a-4141-ad89-3266f64f424c_20250729_122339.pdf"
+      },
+      {
+        "format": "excel",
+        "timestamp": "2025-07-29T12:23:40.513667+00:00",
+        "user_ip": "127.0.0.1",
+        "filename": "deepfake_analysis_586436bb-b15a-4141-ad89-3266f64f424c_20250729_122340.xlsx"
+      },
+      {
+        "format": "html",
+        "timestamp": "2025-07-29T12:23:40.687123+00:00",
+        "user_ip": "127.0.0.1",
+        "filename": "deepfake_report_586436bb-b15a-4141-ad89-3266f64f424c_20250729_122340.html"
+      }
+    ]
+  },
+  "report_metadata": {
+    "generated_at": "2025-07-29T18:17:00.145830",
+    "report_version": "2.0",
+    "generator": "Advanced Deepfake Detection System",
+    "format": "JSON"
+  }
+}

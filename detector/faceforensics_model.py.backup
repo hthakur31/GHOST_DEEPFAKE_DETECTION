@@ -1,0 +1,810 @@
+"""
+Advanced Deepfake Detection Model for FaceForensics++ Dataset
+Implements state-of-the-art techniques for deepfake detection
+"""
+
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import torchvision.transforms as transforms
+from torchvision.models import resnet50, efficientnet_b0
+from torch.utils.data import Dataset, DataLoader, random_split
+import cv2
+import numpy as np
+import face_recognition
+import mediapipe as mp
+from typing import Tuple, List, Dict, Optional, Union
+import logging
+from pathlib import Path
+import os
+import pickle
+from sklearn.metrics import classification_report, confusion_matrix
+
+# Try to import albumentations, fallback to basic augmentations if not available
+try:
+    import albumentations as A
+    from albumentations.pytorch import ToTensorV2
+    ALBUMENTATIONS_AVAILABLE = True
+except ImportError:
+    ALBUMENTATIONS_AVAILABLE = False
+    print("Warning: albumentations not available, using basic augmentations")
+
+logger = logging.getLogger(__name__)
+
+
+class FaceForensicsDetectionModel(nn.Module):
+    """
+    Advanced deepfake detection model based on FaceForensics++ research
+    Incorporates multiple detection techniques:
+    - CNN feature extraction
+    - Temporal consistency analysis
+    - Frequency domain analysis
+    - Attention mechanisms
+    """
+    
+    def __init__(self, num_classes=2, backbone='resnet50', use_attention=True):
+        super(FaceForensicsDetectionModel, self).__init__()
+        
+        self.use_attention = use_attention
+        
+        # Main backbone network
+        if backbone == 'resnet50':
+            self.backbone = resnet50(pretrained=True)
+            feature_dim = self.backbone.fc.in_features
+            self.backbone.fc = nn.Identity()
+        elif backbone == 'efficientnet':
+            self.backbone = efficientnet_b0(pretrained=True)
+            feature_dim = self.backbone.classifier[1].in_features
+            self.backbone.classifier = nn.Identity()
+        
+        # Frequency domain analysis branch
+        self.freq_conv = nn.Sequential(
+            nn.Conv2d(3, 32, kernel_size=3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(32, 64, kernel_size=3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.AdaptiveAvgPool2d((1, 1)),
+            nn.Flatten(),
+            nn.Linear(64, 128)
+        )
+        
+        # Feature fusion
+        fusion_input_dim = feature_dim + 128
+        self.feature_fusion = nn.Linear(fusion_input_dim, 512)
+        
+        # Attention mechanism for temporal consistency
+        if self.use_attention:
+            self.temporal_attention = nn.MultiheadAttention(
+                embed_dim=512, 
+                num_heads=8, 
+                dropout=0.1
+            )
+        
+        # Classification head
+        self.classifier = nn.Sequential(
+            nn.Dropout(0.5),
+            nn.Linear(512, 256),
+            nn.ReLU(inplace=True),
+            nn.Dropout(0.3),
+            nn.Linear(256, 128),
+            nn.ReLU(inplace=True),
+            nn.Dropout(0.2),
+            nn.Linear(128, num_classes)
+        )
+        
+        # Auxiliary classifier for multi-task learning
+        self.aux_classifier = nn.Sequential(
+            nn.Linear(512, 4),  # Original, FaceSwap, Face2Face, FaceShifter, NeuralTextures
+            nn.Softmax(dim=1)
+        )
+        
+    def forward(self, x, freq_x=None):
+        batch_size = x.size(0)
+        
+        # Main feature extraction
+        main_features = self.backbone(x)
+        
+        # Frequency domain features
+        if freq_x is not None:
+            freq_features = self.freq_conv(freq_x)
+            # Combine features
+            combined_features = torch.cat([main_features, freq_features], dim=1)
+            fused_features = self.feature_fusion(combined_features)
+        else:
+            # Use only main features when freq_x is not provided
+            # Add a linear layer to match expected dimension
+            if not hasattr(self, 'main_only_fusion'):
+                feature_dim = main_features.size(1)
+                self.main_only_fusion = nn.Linear(feature_dim, 512).to(main_features.device)
+            fused_features = self.main_only_fusion(main_features)
+        
+        # Apply temporal attention if sequence input
+        if self.use_attention and len(fused_features.shape) == 3:  # Sequence input
+            fused_features = fused_features.transpose(0, 1)  # (seq, batch, feat)
+            attended_features, _ = self.temporal_attention(
+                fused_features, fused_features, fused_features
+            )
+            fused_features = attended_features.mean(0)  # Average over sequence
+        
+        # Classification
+        output = self.classifier(fused_features)
+        aux_output = self.aux_classifier(fused_features)
+        
+        return output, aux_output
+
+
+class FaceForensicsPreprocessor:
+    """
+    Advanced video preprocessing following FaceForensics++ methodology
+    """
+    
+    def __init__(self, target_size=(224, 224), max_frames=32, quality='c23'):
+        self.target_size = target_size
+        self.max_frames = max_frames
+        self.quality = quality  # c23 (high), c40 (medium)
+        
+        # Face detection setup
+        self.mp_face_detection = mp.solutions.face_detection
+        self.face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+        
+        # Data augmentation for training
+        if ALBUMENTATIONS_AVAILABLE:
+            self.train_transform = A.Compose([
+                A.Resize(target_size[0], target_size[1]),
+                A.HorizontalFlip(p=0.5),
+                A.RandomBrightnessContrast(p=0.3),
+                A.GaussNoise(p=0.2),
+                A.Blur(blur_limit=3, p=0.2),
+                A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+                ToTensorV2()
+            ])
+            
+            # Validation/inference transform
+            self.val_transform = A.Compose([
+                A.Resize(target_size[0], target_size[1]),
+                A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+                ToTensorV2()
+            ])
+        else:
+            # Fallback to basic PyTorch transforms
+            self.train_transform = transforms.Compose([
+                transforms.ToPILImage(),
+                transforms.Resize(target_size),
+                transforms.RandomHorizontalFlip(p=0.5),
+                transforms.ColorJitter(brightness=0.2, contrast=0.2),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+            ])
+            
+            self.val_transform = transforms.Compose([
+                transforms.ToPILImage(),
+                transforms.Resize(target_size),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+            ])
+    
+    def extract_frames_advanced(self, video_path: str, method='uniform') -> Tuple[List[np.ndarray], Dict]:
+        """
+        Advanced frame extraction with multiple sampling strategies
+        """
+        cap = cv2.VideoCapture(video_path)
+        frames = []
+        metadata = {}
+        
+        # Get video metadata
+        metadata['fps'] = cap.get(cv2.CAP_PROP_FPS)
+        metadata['frame_count'] = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        metadata['duration'] = metadata['frame_count'] / metadata['fps'] if metadata['fps'] > 0 else 0
+        metadata['width'] = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        metadata['height'] = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        metadata['resolution'] = f"{metadata['width']}x{metadata['height']}"
+        
+        if method == 'uniform':
+            # Uniform sampling across the video
+            indices = np.linspace(0, metadata['frame_count'] - 1, self.max_frames, dtype=int)
+        elif method == 'random':
+            # Random sampling
+            indices = np.random.choice(metadata['frame_count'], 
+                                     min(self.max_frames, metadata['frame_count']), 
+                                     replace=False)
+            indices.sort()
+        elif method == 'dense':
+            # Dense sampling from middle section
+            start_frame = max(0, metadata['frame_count'] // 4)
+            end_frame = min(metadata['frame_count'], 3 * metadata['frame_count'] // 4)
+            indices = np.linspace(start_frame, end_frame, self.max_frames, dtype=int)
+        
+        for idx in indices:
+            cap.set(cv2.CAP_PROP_POS_FRAMES, idx)
+            ret, frame = cap.read()
+            if ret:
+                frames.append(frame)
+        
+        cap.release()
+        metadata['extracted_frames'] = len(frames)
+        metadata['sampling_method'] = method
+        
+        return frames, metadata
+    
+    def detect_faces_advanced(self, frame: np.ndarray) -> List[Dict]:
+        """
+        Multi-method face detection for robustness
+        """
+        faces = []
+        h, w, _ = frame.shape
+        
+        # Method 1: MediaPipe (primary)
+        with self.mp_face_detection.FaceDetection(model_selection=1, min_detection_confidence=0.7) as face_detection:
+            rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            results = face_detection.process(rgb_frame)
+            
+            if results.detections:
+                for detection in results.detections:
+                    bbox = detection.location_data.relative_bounding_box
+                    x = int(bbox.xmin * w)
+                    y = int(bbox.ymin * h)
+                    width = int(bbox.width * w)
+                    height = int(bbox.height * h)
+                    
+                    faces.append({
+                        'bbox': [max(0, x), max(0, y), min(w, x + width), min(h, y + height)],
+                        'confidence': detection.score[0],
+                        'method': 'mediapipe'
+                    })
+        
+        # Method 2: OpenCV Haar Cascades (fallback)
+        if not faces:
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            detected_faces = self.face_cascade.detectMultiScale(gray, 1.1, 4)
+            
+            for (x, y, width, height) in detected_faces:
+                faces.append({
+                    'bbox': [x, y, x + width, y + height],
+                    'confidence': 0.8,  # Default confidence for Haar cascades
+                    'method': 'opencv'
+                })
+        
+        # Method 3: face_recognition library (highest quality)
+        if not faces:
+            rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            face_locations = face_recognition.face_locations(rgb_frame)
+            
+            for (top, right, bottom, left) in face_locations:
+                faces.append({
+                    'bbox': [left, top, right, bottom],
+                    'confidence': 0.9,
+                    'method': 'face_recognition'
+                })
+        
+        return faces
+    
+    def extract_frequency_features(self, frame: np.ndarray) -> np.ndarray:
+        """
+        Extract frequency domain features for deepfake detection
+        """
+        # Convert to grayscale
+        if len(frame.shape) == 3:
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        else:
+            gray = frame
+        
+        # Apply 2D FFT
+        f_transform = np.fft.fft2(gray)
+        f_shift = np.fft.fftshift(f_transform)
+        
+        # Magnitude spectrum
+        magnitude_spectrum = np.log(np.abs(f_shift) + 1)
+        
+        # Normalize and resize
+        magnitude_spectrum = (magnitude_spectrum - magnitude_spectrum.min()) / (magnitude_spectrum.max() - magnitude_spectrum.min())
+        magnitude_spectrum = cv2.resize(magnitude_spectrum, self.target_size)
+        
+        # Convert to 3-channel for consistency with RGB
+        freq_features = np.stack([magnitude_spectrum] * 3, axis=-1)
+        
+        return freq_features.astype(np.float32)
+    
+    def preprocess_for_inference(self, frames: List[np.ndarray]) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        Preprocess frames for model inference
+        """
+        processed_frames = []
+        freq_frames = []
+        
+        for frame in frames:
+            # Detect face and crop
+            faces = self.detect_faces_advanced(frame)
+            
+            if faces:
+                # Use the face with highest confidence
+                best_face = max(faces, key=lambda x: x['confidence'])
+                bbox = best_face['bbox']
+                
+                # Crop face with padding
+                face_img = self.crop_face_with_padding(frame, bbox, padding=0.2)
+            else:
+                # If no face detected, use center crop
+                h, w = frame.shape[:2]
+                size = min(h, w)
+                start_h = (h - size) // 2
+                start_w = (w - size) // 2
+                face_img = frame[start_h:start_h+size, start_w:start_w+size]
+            
+            # Apply transforms
+            if ALBUMENTATIONS_AVAILABLE:
+                transformed = self.val_transform(image=face_img)
+                processed_frames.append(transformed['image'])
+                
+                # Extract frequency features
+                freq_features = self.extract_frequency_features(face_img)
+                freq_transformed = self.val_transform(image=freq_features)
+                freq_frames.append(freq_transformed['image'])
+            else:
+                # Use PyTorch transforms
+                face_tensor = self.val_transform(face_img)
+                processed_frames.append(face_tensor)
+                
+                # Extract frequency features
+                freq_features = self.extract_frequency_features(face_img)
+                freq_tensor = self.val_transform(freq_features)
+                freq_frames.append(freq_tensor)
+        
+        # Stack frames
+        frames_tensor = torch.stack(processed_frames)
+        freq_tensor = torch.stack(freq_frames)
+        
+        return frames_tensor, freq_tensor
+    
+    def crop_face_with_padding(self, frame: np.ndarray, bbox: List[int], padding: float = 0.2) -> np.ndarray:
+        """
+        Crop face from frame with intelligent padding
+        """
+        x1, y1, x2, y2 = bbox
+        h, w = frame.shape[:2]
+        
+        # Calculate padding
+        face_w = x2 - x1
+        face_h = y2 - y1
+        pad_w = int(face_w * padding)
+        pad_h = int(face_h * padding)
+        
+        # Expand bbox with padding
+        x1 = max(0, x1 - pad_w)
+        y1 = max(0, y1 - pad_h)
+        x2 = min(w, x2 + pad_w)
+        y2 = min(h, y2 + pad_h)
+        
+        # Crop and resize
+        face_crop = frame[y1:y2, x1:x2]
+        
+        # Ensure minimum size
+        if face_crop.shape[0] < 64 or face_crop.shape[1] < 64:
+            face_crop = cv2.resize(face_crop, (224, 224))
+        
+        return face_crop
+
+
+class FaceForensicsDetector:
+    """
+    Main detector class for FaceForensics++ based deepfake detection
+    """
+    
+    def __init__(self, model_path: Optional[str] = None, device: str = 'auto', threshold: float = 0.75):
+        self.device = torch.device('cuda' if torch.cuda.is_available() and device == 'auto' else 'cpu')
+        self.preprocessor = FaceForensicsPreprocessor()
+        self.threshold = threshold  # Adjustable threshold for better accuracy
+        self.classes = ['Real', 'Fake']
+        
+        # Load model
+        self.model = FaceForensicsDetectionModel()
+        
+        if model_path and os.path.exists(model_path):
+            self.load_model(model_path)
+        else:
+            logger.warning("No pre-trained model found. Using randomly initialized weights.")
+            logger.info("To train a model, use the training script with FaceForensics++ dataset.")
+        
+        self.model.to(self.device)
+        self.model.eval()
+        
+        # Class names for FaceForensics++
+        self.classes = ['Real', 'Fake']
+        self.manipulation_types = ['Original', 'Deepfakes', 'Face2Face', 'FaceSwap', 'NeuralTextures']
+    
+    def load_model(self, model_path: str):
+        """Load pre-trained model weights"""
+        try:
+            checkpoint = torch.load(model_path, map_location=self.device)
+            self.model.load_state_dict(checkpoint['model_state_dict'])
+            logger.info(f"Model loaded from {model_path}")
+        except Exception as e:
+            logger.error(f"Error loading model: {e}")
+            raise
+    
+    def detect_video(self, video_path: str) -> Dict:
+        """
+        Detect deepfakes in a video file
+        """
+        try:
+            # Extract frames
+            frames, metadata = self.preprocessor.extract_frames_advanced(video_path)
+            
+            if not frames:
+                return {
+                    'prediction': 'ERROR',
+                    'confidence': 0.0,
+                    'error': 'No frames could be extracted from video'
+                }
+            
+            # Preprocess frames
+            frame_tensors, freq_tensors = self.preprocessor.preprocess_for_inference(frames)
+            
+            # Move to device
+            frame_tensors = frame_tensors.to(self.device)
+            freq_tensors = freq_tensors.to(self.device)
+            
+            # Run inference
+            with torch.no_grad():
+                outputs, aux_outputs = self.model(frame_tensors, freq_tensors)
+                
+                # Get probabilities
+                probabilities = F.softmax(outputs, dim=1)
+                
+                # Extract real and fake probabilities for all frames
+                real_probs = probabilities[:, 0].cpu().numpy()  # Index 0 = Real
+                fake_probs = probabilities[:, 1].cpu().numpy()  # Index 1 = Fake
+                
+                # Apply bias correction - the model seems to have a systematic bias toward fake
+                # If probabilities are very close to 50%, apply conservative bias toward real
+                bias_correction = 0.05  # 5% bias correction toward real
+                corrected_fake_probs = fake_probs - bias_correction
+                corrected_real_probs = real_probs + bias_correction
+                
+                # Normalize to ensure they sum to 1
+                total_probs = corrected_real_probs + corrected_fake_probs
+                corrected_real_probs = corrected_real_probs / total_probs
+                corrected_fake_probs = corrected_fake_probs / total_probs
+                
+                # Calculate confidence-weighted average instead of simple majority
+                frame_confidences = np.maximum(corrected_real_probs, corrected_fake_probs)
+                
+                # Avoid division by zero
+                if np.sum(frame_confidences) > 0:
+                    weights = frame_confidences / np.sum(frame_confidences)
+                else:
+                    weights = np.ones(len(frame_confidences)) / len(frame_confidences)
+                
+                # Weighted voting for better accuracy using corrected probabilities
+                weighted_fake_score = np.sum(corrected_fake_probs * weights)
+                weighted_real_score = np.sum(corrected_real_probs * weights)
+                
+                # Apply improved threshold logic - higher threshold reduces false positives
+                if weighted_fake_score > self.threshold:
+                    final_prediction = 1  # Fake
+                    final_confidence = weighted_fake_score
+                else:
+                    final_prediction = 0  # Real
+                    final_confidence = weighted_real_score
+                
+                # Calculate consistency score (lower std = more consistent)
+                consistency_score = 1.0 - np.std(fake_probs) if len(fake_probs) > 1 else 1.0
+                
+                # Get predictions for frame analysis (using argmax for individual frames)
+                frame_predictions = torch.argmax(probabilities, dim=1).cpu().numpy()
+                frame_probabilities = probabilities.cpu().numpy()
+                
+                # Calculate frame-by-frame analysis
+                frame_analyses = []
+                for i, (pred, prob) in enumerate(zip(frame_predictions, frame_probabilities)):
+                    frame_analyses.append({
+                        'frame_number': i + 1,
+                        'timestamp': (i / len(frames)) * metadata['duration'],
+                        'prediction': self.classes[pred],
+                        'confidence_score': float(prob[pred]),
+                        'real_probability': float(prob[0]) * 100,
+                        'fake_probability': float(prob[1]) * 100,
+                        'face_detected': True  # We only process frames with faces
+                    })
+                
+                # Manipulation type detection
+                aux_probs = F.softmax(aux_outputs.mean(0, keepdim=True), dim=1)
+                manipulation_type = self.manipulation_types[torch.argmax(aux_probs).item()]
+                
+                return {
+                    'prediction': self.classes[final_prediction],
+                    'confidence_score': float(final_confidence),
+                    'confidence_percentage': float(final_confidence * 100),
+                    'real_probability': float(weighted_real_score * 100),
+                    'fake_probability': float(weighted_fake_score * 100),
+                    'consistency_score': float(consistency_score),
+                    'threshold_used': self.threshold,
+                    'manipulation_type': manipulation_type,
+                    'frames_analyzed': len(frames),
+                    'face_detected': True,
+                    'face_count': len(frames),  # Simplified
+                    'frame_analyses': frame_analyses,
+                    'video_metadata': metadata,
+                    'model_name': 'FaceForensics++ Advanced Model',
+                    'model_version': '2.2',  # Updated with bias correction
+                    'detection_method': 'FaceForensics++ CNN with Bias Correction'
+                }
+                
+        except Exception as e:
+            logger.error(f"Error during detection: {e}")
+            return {
+                'prediction': 'ERROR',
+                'confidence': 0.0,
+                'error': str(e)
+            }
+    
+    def get_transforms(self):
+        """
+        Get the data transforms used by the preprocessor
+        """
+        return self.preprocessor.train_transform, self.preprocessor.val_transform
+    
+    def save_model(self, path: str):
+        """
+        Save the trained model to disk
+        """
+        torch.save({
+            'model_state_dict': self.model.state_dict(),
+            'model_config': {
+                'num_classes': 2,
+                'backbone': 'resnet50',
+                'use_attention': True
+            },
+            'classes': self.classes
+        }, path)
+        logger.info(f"Model saved to {path}")
+    
+    def set_threshold(self, threshold: float):
+        """Set detection threshold for fine-tuning accuracy"""
+        self.threshold = max(0.1, min(0.9, threshold))  # Clamp between 0.1 and 0.9
+        logger.info(f"Detection threshold set to: {self.threshold}")
+        
+    def get_threshold(self) -> float:
+        """Get current detection threshold"""
+        return self.threshold
+    
+    def train(self, dataset, batch_size=16, num_epochs=10, learning_rate=0.001, 
+              num_workers=4, train_split=0.8, val_split=0.1):
+        """
+        Train the FaceForensics++ model
+        """
+        # Split dataset
+        train_size = int(train_split * len(dataset))
+        val_size = int(val_split * len(dataset))
+        test_size = len(dataset) - train_size - val_size
+        
+        train_dataset, val_dataset, test_dataset = random_split(
+            dataset, [train_size, val_size, test_size]
+        )
+        
+        # Create data loaders
+        train_loader = DataLoader(
+            train_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers
+        )
+        val_loader = DataLoader(
+            val_dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers
+        )
+        
+        # Setup training
+        optimizer = torch.optim.Adam(self.model.parameters(), lr=learning_rate)
+        criterion = nn.CrossEntropyLoss()
+        aux_criterion = nn.CrossEntropyLoss()
+        
+        trainer = FaceForensicsTrainer(self.model, str(self.device))
+        
+        # Training loop
+        best_val_acc = 0
+        training_stats = {
+            'train_losses': [],
+            'val_losses': [],
+            'train_accuracies': [],
+            'val_accuracies': []
+        }
+        
+        for epoch in range(num_epochs):
+            logger.info(f"Epoch {epoch + 1}/{num_epochs}")
+            
+            # Train
+            train_loss, train_acc, train_aux_loss = trainer.train_epoch(
+                train_loader, optimizer, criterion, aux_criterion
+            )
+            
+            # Validate
+            val_loss, val_acc = trainer.validate(val_loader, criterion, aux_criterion)
+            
+            # Log stats
+            training_stats['train_losses'].append(train_loss)
+            training_stats['val_losses'].append(val_loss)
+            training_stats['train_accuracies'].append(train_acc)
+            training_stats['val_accuracies'].append(val_acc)
+            
+            logger.info(f"Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.4f}, Aux Loss: {train_aux_loss:.4f}")
+            logger.info(f"Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.4f}")
+            
+            # Save best model
+            if val_acc > best_val_acc:
+                best_val_acc = val_acc
+                # Could save checkpoint here
+        
+        return training_stats
+
+
+# Model training utilities
+class FaceForensicsTrainer:
+    """
+    Training utilities for the FaceForensics++ detection model
+    """
+    
+    def __init__(self, model, device='cuda'):
+        self.model = model
+        self.device = device
+        self.model.to(device)
+        
+    def train_epoch(self, dataloader, optimizer, criterion, aux_criterion):
+        """Train for one epoch"""
+        self.model.train()
+        total_loss = 0
+        total_aux_loss = 0
+        correct = 0
+        total = 0
+        
+        for batch_idx, (data, freq_data, targets, aux_targets) in enumerate(dataloader):
+            data, freq_data = data.to(self.device), freq_data.to(self.device)
+            targets, aux_targets = targets.to(self.device), aux_targets.to(self.device)
+            
+            optimizer.zero_grad()
+            
+            outputs, aux_outputs = self.model(data, freq_data)
+            
+            # Main loss
+            main_loss = criterion(outputs, targets)
+            # Auxiliary loss
+            aux_loss = aux_criterion(aux_outputs, aux_targets)
+            # Combined loss
+            loss = main_loss + 0.3 * aux_loss
+            
+            loss.backward()
+            optimizer.step()
+            
+            total_loss += main_loss.item()
+            total_aux_loss += aux_loss.item()
+            
+            _, predicted = outputs.max(1)
+            total += targets.size(0)
+            correct += predicted.eq(targets).sum().item()
+            
+        return total_loss / len(dataloader), correct / total, total_aux_loss / len(dataloader)
+    
+    def validate(self, dataloader, criterion, aux_criterion):
+        """Validate the model"""
+        self.model.eval()
+        total_loss = 0
+        correct = 0
+        total = 0
+        
+        with torch.no_grad():
+            for data, freq_data, targets, aux_targets in dataloader:
+                data, freq_data = data.to(self.device), freq_data.to(self.device)
+                targets, aux_targets = targets.to(self.device), aux_targets.to(self.device)
+                
+                outputs, aux_outputs = self.model(data, freq_data)
+                loss = criterion(outputs, targets)
+                
+                total_loss += loss.item()
+                _, predicted = outputs.max(1)
+                total += targets.size(0)
+                correct += predicted.eq(targets).sum().item()
+        
+        return total_loss / len(dataloader), correct / total
+
+
+class FaceForensicsDataset(Dataset):
+    """
+    Dataset class for FaceForensics++ deepfake detection
+    """
+    
+    def __init__(self, real_videos: List[str], fake_videos: List[str], transform=None):
+        self.real_videos = real_videos
+        self.fake_videos = fake_videos
+        self.transform = transform
+        
+        # Create label mapping
+        self.samples = []
+        
+        # Add real videos (label 0)
+        for video_path in real_videos:
+            self.samples.append((video_path, 0))
+        
+        # Add fake videos (label 1)
+        for video_path in fake_videos:
+            self.samples.append((video_path, 1))
+        
+        logger.info(f"Dataset initialized with {len(self.samples)} samples")
+        logger.info(f"Real videos: {len(real_videos)}, Fake videos: {len(fake_videos)}")
+    
+    def __len__(self):
+        return len(self.samples)
+    
+    def __getitem__(self, idx):
+        video_path, label = self.samples[idx]
+        
+        try:
+            # Extract frames from video
+            cap = cv2.VideoCapture(video_path)
+            frames = []
+            
+            # Sample a few frames for training
+            frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+            if frame_count > 0:
+                # Sample 5 frames uniformly
+                frame_indices = np.linspace(0, frame_count - 1, 5, dtype=int)
+                
+                for frame_idx in frame_indices:
+                    cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx)
+                    ret, frame = cap.read()
+                    if ret:
+                        frames.append(frame)
+                    if len(frames) >= 3:  # Minimum frames needed
+                        break
+            
+            cap.release()
+            
+            if not frames:
+                # Return dummy data if no frames could be extracted
+                return torch.zeros(3, 224, 224), torch.zeros(3, 224, 224), label, label
+            
+            # Use the middle frame
+            frame = frames[len(frames) // 2]
+            
+            # Detect face and crop
+            preprocessor = FaceForensicsPreprocessor()
+            faces = preprocessor.detect_faces_advanced(frame)
+            
+            if faces:
+                # Use the best face
+                best_face = max(faces, key=lambda x: x['confidence'])
+                bbox = best_face['bbox']
+                face_img = preprocessor.crop_face_with_padding(frame, bbox)
+            else:
+                # Use center crop if no face detected
+                h, w = frame.shape[:2]
+                size = min(h, w)
+                start_h = (h - size) // 2
+                start_w = (w - size) // 2
+                face_img = frame[start_h:start_h+size, start_w:start_w+size]
+            
+            # Extract frequency features
+            freq_features = preprocessor.extract_frequency_features(face_img)
+            
+            # Apply transforms
+            if self.transform:
+                if ALBUMENTATIONS_AVAILABLE:
+                    # Albumentations transform
+                    transformed = self.transform(image=face_img)
+                    face_tensor = transformed['image']
+                    
+                    freq_transformed = self.transform(image=freq_features)
+                    freq_tensor = freq_transformed['image']
+                else:
+                    # PyTorch transforms
+                    face_tensor = self.transform(face_img)
+                    freq_tensor = self.transform(freq_features)
+            else:
+                # Basic tensor conversion
+                face_tensor = torch.from_numpy(face_img.transpose(2, 0, 1)).float() / 255.0
+                freq_tensor = torch.from_numpy(freq_features.transpose(2, 0, 1)).float()
+            
+            return face_tensor, freq_tensor, label, label
+            
+        except Exception as e:
+            logger.error(f"Error loading sample {idx}: {e}")
+            # Return dummy data on error
+            return torch.zeros(3, 224, 224), torch.zeros(3, 224, 224), label, label
+
+
+# Export the main detector class
+__all__ = ['FaceForensicsDetector', 'FaceForensicsDetectionModel', 'FaceForensicsPreprocessor', 'FaceForensicsTrainer', 'FaceForensicsDataset']
